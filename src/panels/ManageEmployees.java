@@ -92,6 +92,7 @@ public class ManageEmployees extends javax.swing.JPanel {
         address.setText("");
         imageLabel.setIcon(null);
         table.clearSelection();
+        selectedFile = null;
     }
 
     @SuppressWarnings("unchecked")
@@ -514,6 +515,7 @@ public class ManageEmployees extends javax.swing.JPanel {
             String contactStr = contact.getText();
             String emailStr = email.getText();
             String addressStr = address.getText();
+            byte[] imageData = (byte[]) model.getValueAt(row, 6);
             String id = model.getValueAt(row, 0).toString();
 
             if (fnameStr.isBlank() || lnameStr.isBlank() || contactStr.isBlank() || emailStr.isBlank() || addressStr.isBlank()) {
@@ -521,39 +523,43 @@ public class ManageEmployees extends javax.swing.JPanel {
             } else {
                 try {
                     int employeeid = Integer.parseInt(id);
-                    if (picts != null) {
-                        picts = selectedFile.getName();
+
+                    try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
+                        String query = "UPDATE employees SET fname = ?, lname = ?, contact = ?, email = ?, address = ?, picture = ? WHERE id = ?";
+                        try (PreparedStatement statement = con.prepareStatement(query)) {
+                            
+                            statement.setString(1, fnameStr);
+                            statement.setString(2, lnameStr);
+                            statement.setString(3, contactStr);
+                            statement.setString(4, emailStr);
+                            statement.setString(5, addressStr);
+                            
+                            if (selectedFile != null) {
+                                try (FileInputStream fis = new FileInputStream(selectedFile)) {
+                                    statement.setBinaryStream(6, fis);
+                                }
+                            } else {
+                                try (ByteArrayInputStream bais = new ByteArrayInputStream(imageData)) {
+                                    statement.setBinaryStream(6, bais, imageData.length);
+                                }
+                            }
+                            
+                            statement.setInt(7, employeeid);
+                            
+                            int rowsUpdated = statement.executeUpdate();
+                            if (rowsUpdated > 0) {
+                                populateTable();
+                                clear();
+                                JOptionPane.showMessageDialog(this, "Employee updated successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                            } else {
+                                JOptionPane.showMessageDialog(this, "Failed to update employee.", "Error", JOptionPane.INFORMATION_MESSAGE);
+                            }
+                        }
                     }
-
-                    Connection con = DriverManager.getConnection(url, sqluser, sqlpass);
-                    String query = "UPDATE employees SET fname = ?, lname = ?, contact = ?, email = ?, address = ?, picture = ? WHERE id = ?";
-                    PreparedStatement statement = con.prepareStatement(query);
-
-                    FileInputStream fis = new FileInputStream(selectedFile);
-                    
-                    statement.setString(1, fnameStr);
-                    statement.setString(2, lnameStr);
-                    statement.setString(3, contactStr);
-                    statement.setString(4, emailStr);
-                    statement.setString(5, addressStr);
-                    statement.setBinaryStream(6, fis);
-                    statement.setInt(7, employeeid);
-
-                    int rowsUpdated = statement.executeUpdate();
-                    if (rowsUpdated > 0) {
-                        populateTable();
-                        clear();
-                        JOptionPane.showMessageDialog(this, "Employee updated successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(this, "Failed to update employee.", "Error", JOptionPane.INFORMATION_MESSAGE);
-                    }
-
-                    statement.close();
-                    con.close();
                 } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(this, "An error has occurred", "Error", JOptionPane.ERROR_MESSAGE);
-                } catch (FileNotFoundException ex) {
-                    Logger.getLogger(ManageEmployees.class.getName()).log(Level.SEVERE, null, ex);
+                    JOptionPane.showMessageDialog(this, "An error has occurred in database.", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Image not found", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
@@ -575,7 +581,8 @@ public class ManageEmployees extends javax.swing.JPanel {
             Image scaledImage = originalImage.getScaledInstance(300, 300, Image.SCALE_SMOOTH);
             ImageIcon imageIcon = new ImageIcon(scaledImage);
             imageLabel.setIcon(imageIcon);
-        } catch (Exception ex) {
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Image not found", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_tableMouseClicked
 

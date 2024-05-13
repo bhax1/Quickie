@@ -1,13 +1,11 @@
 package panels;
 
-import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.sql.*;
-import java.util.logging.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
@@ -17,7 +15,6 @@ public class ManageCars extends javax.swing.JPanel {
     String url = "jdbc:mariadb://localhost:3306/carrental";
     String sqluser = "root";
     String sqlpass = "12345";
-    String picts;
     File selectedFile;
 
     public ManageCars() {
@@ -49,6 +46,7 @@ public class ManageCars extends javax.swing.JPanel {
                 int id = rs.getInt("id");
                 String brands = rs.getString("brand");
                 String models = rs.getString("model");
+                int yearmodels = rs.getInt("yearmodel");
                 String fuelTypes = rs.getString("fueltype");
                 String colors = rs.getString("color");
                 String plateNos = rs.getString("platenumber");
@@ -56,7 +54,7 @@ public class ManageCars extends javax.swing.JPanel {
 
                 byte[] picture = rs.getBytes("picture");
 
-                tmodel.addRow(new Object[]{id, brands, models, fuelTypes, colors, plateNos, prices, picture});
+                tmodel.addRow(new Object[]{id, brands, models, yearmodels, fuelTypes, colors, plateNos, prices, picture});
             }
 
         } catch (SQLException e) {
@@ -72,11 +70,13 @@ public class ManageCars extends javax.swing.JPanel {
         brand.setText("");
         color.setText("");
         model.setText("");
+        yearmodel.setText("");
         fueltype.setText("");
         plateno.setText("");
         price.setText("");
         imageLabel.setIcon(null);
         table.clearSelection();
+        selectedFile = null;
     }
 
     @SuppressWarnings("unchecked")
@@ -109,6 +109,8 @@ public class ManageCars extends javax.swing.JPanel {
         lblcarID1 = new javax.swing.JLabel();
         searchID = new javax.swing.JTextField();
         searchbtn = new javax.swing.JButton();
+        lblprice1 = new javax.swing.JLabel();
+        yearmodel = new javax.swing.JTextField();
 
         setBackground(new java.awt.Color(255, 255, 255));
         setPreferredSize(new java.awt.Dimension(1000, 555));
@@ -222,14 +224,14 @@ public class ManageCars extends javax.swing.JPanel {
 
             },
             new String [] {
-                "Car ID", "Brand", "Model", "Fuel Type", "Color", "Plate Number", "Price", "Picture"
+                "Car ID", "Brand", "Model", "Year Model", "Fuel Type", "Color", "Plate Number", "Price", "Picture"
             }
         ) {
             Class[] types = new Class [] {
-                java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Byte.class
+                java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Byte.class
             };
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, false, false, false, false
+                false, false, false, false, false, false, false, false, false
             };
 
             public Class getColumnClass(int columnIndex) {
@@ -256,9 +258,10 @@ public class ManageCars extends javax.swing.JPanel {
             table.getColumnModel().getColumn(4).setResizable(false);
             table.getColumnModel().getColumn(5).setResizable(false);
             table.getColumnModel().getColumn(6).setResizable(false);
-            table.getColumnModel().getColumn(7).setMinWidth(0);
-            table.getColumnModel().getColumn(7).setPreferredWidth(0);
-            table.getColumnModel().getColumn(7).setMaxWidth(0);
+            table.getColumnModel().getColumn(7).setResizable(false);
+            table.getColumnModel().getColumn(8).setMinWidth(0);
+            table.getColumnModel().getColumn(8).setPreferredWidth(0);
+            table.getColumnModel().getColumn(8).setMaxWidth(0);
         }
 
         lblbrand.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
@@ -289,6 +292,9 @@ public class ManageCars extends javax.swing.JPanel {
             }
         });
 
+        lblprice1.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
+        lblprice1.setText("Year Model");
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -306,26 +312,27 @@ public class ManageCars extends javax.swing.JPanel {
                     .addComponent(model)
                     .addComponent(fueltype)
                     .addComponent(color, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(lblcarID1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 35, Short.MAX_VALUE)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(lblplate)
+                    .addComponent(lblprice1)
+                    .addComponent(lblprice, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblcarID1))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(searchID, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(searchbtn))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(lblplate)
-                            .addComponent(lblprice, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(28, 28, 28)
+                        .addComponent(plateno, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addComponent(price)
-                                .addGap(90, 90, 90))
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addComponent(plateno, javax.swing.GroupLayout.PREFERRED_SIZE, 195, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, Short.MAX_VALUE)))))
-                .addGap(22, 22, 22))
+                                .addComponent(searchID, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(searchbtn))
+                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                .addComponent(yearmodel, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 105, Short.MAX_VALUE)
+                                .addComponent(price, javax.swing.GroupLayout.Alignment.LEADING)))
+                        .addContainerGap(22, Short.MAX_VALUE))))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -335,38 +342,32 @@ public class ManageCars extends javax.swing.JPanel {
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(lblplate)
-                                .addComponent(plateno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(40, 40, 40)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(price, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(lblprice))))
-                        .addGap(29, 29, 29)
-                        .addComponent(lblcarID1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(searchID, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(searchbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                 .addComponent(lblbrand)
                                 .addComponent(brand, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addGap(40, 40, 40)
                                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(model, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(lblmodel))))
+                                    .addComponent(lblmodel)
+                                    .addComponent(lblprice1)
+                                    .addComponent(yearmodel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
                         .addGap(18, 18, 18)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(lblfueltype)
-                            .addComponent(fueltype, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(18, 18, 18)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(color, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lblcolor))))
-                .addGap(30, 30, 30))
+                            .addComponent(fueltype, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblprice)
+                            .addComponent(price, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(lblplate)
+                        .addComponent(plateno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(18, 18, 18)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(color, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblcolor)
+                    .addComponent(lblcarID1)
+                    .addComponent(searchID, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(searchbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(22, 22, 22))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
@@ -375,19 +376,23 @@ public class ManageCars extends javax.swing.JPanel {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(infopanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 617, Short.MAX_VALUE))
-                .addGap(20, 20, 20))
+                    .addGroup(layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane2)
+                        .addContainerGap())
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(32, 32, 32)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(33, Short.MAX_VALUE))))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(infopanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addGroup(layout.createSequentialGroup()
-                .addGap(17, 17, 17)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 320, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addContainerGap()
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 331, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
@@ -406,8 +411,6 @@ public class ManageCars extends javax.swing.JPanel {
             if (isImageSizeValid(selectedFile)) {
                 try {
                     BufferedImage img = ImageIO.read(selectedFile);
-
-                    // Scale the image to fit within a 300x300 panel while preserving aspect ratio
                     ImageIcon imageIcon = new ImageIcon(img);
                     imageLabel.setIcon(imageIcon);
 
@@ -424,31 +427,33 @@ public class ManageCars extends javax.swing.JPanel {
     private void addCarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addCarActionPerformed
         String brandText = brand.getText();
         String modelText = model.getText();
+        String yearmodelText = yearmodel.getText();
         String fuelTypeText = fueltype.getText();
         String colorText = color.getText();
         String platenoText = plateno.getText();
         String priceText = price.getText();
 
-        if (brandText.isBlank() || modelText.isBlank() || colorText.isBlank() || fuelTypeText.isBlank() || platenoText.isBlank() || priceText.isBlank()) {
+        if (brandText.isBlank() || modelText.isBlank() || yearmodelText.isBlank() || colorText.isBlank() || fuelTypeText.isBlank() || platenoText.isBlank() || priceText.isBlank()) {
             JOptionPane.showMessageDialog(this, "Please enter all fields.");
         } else if (selectedFile == null) {
             JOptionPane.showMessageDialog(this, "Please select an image first before proceeding.");
         } else {
             try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
-                BigDecimal decimalprice = new BigDecimal(priceText);
+                int yearmodels = Integer.parseInt(yearmodelText);
                 
-                String insertQuery = "INSERT INTO cars (brand, model, fueltype, color, platenumber, price, picture) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                String insertQuery = "INSERT INTO cars (brand, model, yearmodel, fueltype, color, platenumber, price, picture) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
                 PreparedStatement ps = con.prepareStatement(insertQuery);
 
                 ps.setString(1, brandText);
                 ps.setString(2, modelText);
-                ps.setString(3, fuelTypeText);
-                ps.setString(4, colorText);
-                ps.setString(5, platenoText);
-                ps.setBigDecimal(6, decimalprice);
+                ps.setInt(3, yearmodels);
+                ps.setString(4, fuelTypeText);
+                ps.setString(5, colorText);
+                ps.setString(6, platenoText);
+                ps.setBigDecimal(7, new BigDecimal(priceText));
 
                 FileInputStream fis = new FileInputStream(selectedFile);
-                ps.setBinaryStream(7, fis);
+                ps.setBinaryStream(8, fis);
 
                 int rowsAffected = ps.executeUpdate();
                 if (rowsAffected > 0) {
@@ -510,35 +515,42 @@ public class ManageCars extends javax.swing.JPanel {
         } else {
             String brandText = brand.getText();
             String modelText = model.getText();
+            String yearmodelText = yearmodel.getText();
             String fuelTypeText = fueltype.getText();
             String colorText = color.getText();
             String platenoText = plateno.getText();
             String priceText = price.getText();
+            byte[] imageData = (byte[]) tmodel.getValueAt(row, 8);
             String id = tmodel.getValueAt(row, 0).toString();
 
-            if (brandText.isBlank() || modelText.isBlank() || colorText.isBlank() || fuelTypeText.isBlank() || platenoText.isBlank() || priceText.isBlank()) {
+            if (brandText.isBlank() || modelText.isBlank() || yearmodelText.isBlank() || colorText.isBlank() || fuelTypeText.isBlank() || platenoText.isBlank() || priceText.isBlank()) {
             JOptionPane.showMessageDialog(this, "Please enter all fields.");
             } else {
                 try {
+                    int yearmodels = Integer.parseInt(yearmodelText);
                     int carid = Integer.parseInt(id);
-                    if (picts != null) {
-                        picts = selectedFile.getName();
-                    }
 
                     try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
-                        String query = "UPDATE cars SET brand = ?, model = ?, fueltype = ?, color = ?, platenumber = ?, price = ?, picture = ?, WHERE id = ?";
+                        String query = "UPDATE cars SET brand = ?, model = ?, yearmodel = ?, fueltype = ?, color = ?, platenumber = ?, price = ?, picture = ? WHERE id = ?";
                         try (PreparedStatement ps = con.prepareStatement(query)) {
-                            FileInputStream fis = new FileInputStream(selectedFile);
-                            BigDecimal decimalprice = new BigDecimal(priceText);
-                            
                             ps.setString(1, brandText);
                             ps.setString(2, modelText);
-                            ps.setString(3, fuelTypeText);
-                            ps.setString(4, colorText);
-                            ps.setString(5, platenoText);
-                            ps.setBigDecimal(6, decimalprice);
-                            ps.setBinaryStream(7, fis);
-                            ps.setInt(8, carid);
+                            ps.setInt(3, yearmodels);
+                            ps.setString(4, fuelTypeText);
+                            ps.setString(5, colorText);
+                            ps.setString(6, platenoText);
+                            ps.setBigDecimal(7, new BigDecimal(priceText));
+                            
+                            if (selectedFile != null) {
+                                try (FileInputStream fis = new FileInputStream(selectedFile)) {
+                                    ps.setBinaryStream(8, fis);
+                                }
+                            } else {
+                                try (ByteArrayInputStream bais = new ByteArrayInputStream(imageData)) {
+                                    ps.setBinaryStream(8, bais, imageData.length);
+                                }
+                            }
+                            ps.setInt(9, carid);
                             
                             int rowsUpdated = ps.executeUpdate();
                             if (rowsUpdated > 0) {
@@ -551,9 +563,11 @@ public class ManageCars extends javax.swing.JPanel {
                         }
                     }
                 } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(this, "An error has occurred", "Error", JOptionPane.ERROR_MESSAGE);
-                } catch (FileNotFoundException ex) {
-                    Logger.getLogger(ManageCars.class.getName()).log(Level.SEVERE, null, ex);
+                    JOptionPane.showMessageDialog(this, "An error has occurred in database.", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (NumberFormatException ne) {
+                    JOptionPane.showMessageDialog(this, "Year Model is invalid.", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Image not found.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
@@ -565,12 +579,13 @@ public class ManageCars extends javax.swing.JPanel {
             DefaultTableModel tmodel = (DefaultTableModel) table.getModel();
             brand.setText(tmodel.getValueAt(row, 1).toString());
             model.setText(tmodel.getValueAt(row, 2).toString());
-            fueltype.setText(tmodel.getValueAt(row, 3).toString());
-            color.setText(tmodel.getValueAt(row, 4).toString());
-            plateno.setText(tmodel.getValueAt(row, 5).toString());
-            price.setText(tmodel.getValueAt(row, 6).toString());
+            yearmodel.setText(tmodel.getValueAt(row, 3).toString());
+            fueltype.setText(tmodel.getValueAt(row, 4).toString());
+            color.setText(tmodel.getValueAt(row, 5).toString());
+            plateno.setText(tmodel.getValueAt(row, 6).toString());
+            price.setText(tmodel.getValueAt(row, 7).toString());
             
-            byte[] imageData = (byte[]) tmodel.getValueAt(row, 7);
+            byte[] imageData = (byte[]) tmodel.getValueAt(row, 8);
             BufferedImage originalImage = getImageFromByteArray(imageData);
             ImageIcon imageIcon = new ImageIcon(originalImage);
             imageLabel.setIcon(imageIcon);
@@ -603,12 +618,13 @@ public class ManageCars extends javax.swing.JPanel {
                     table.setRowSelectionInterval(i, i);
                     brand.setText(tmodel.getValueAt(i, 1).toString());
                     model.setText(tmodel.getValueAt(i, 2).toString());
-                    fueltype.setText(tmodel.getValueAt(i, 3).toString());
-                    color.setText(tmodel.getValueAt(i, 4).toString());
-                    plateno.setText(tmodel.getValueAt(i, 5).toString());
-                    price.setText(tmodel.getValueAt(i, 6).toString());
+                    yearmodel.setText(tmodel.getValueAt(i, 3).toString());
+                    fueltype.setText(tmodel.getValueAt(i, 4).toString());
+                    color.setText(tmodel.getValueAt(i, 5).toString());
+                    plateno.setText(tmodel.getValueAt(i, 6).toString());
+                    price.setText(tmodel.getValueAt(i, 7).toString());
 
-                    byte[] imageData = (byte[]) tmodel.getValueAt(i, 7);
+                    byte[] imageData = (byte[]) tmodel.getValueAt(i, 8);
                     BufferedImage originalImage = getImageFromByteArray(imageData);
 
                     ImageIcon imageIcon = new ImageIcon(originalImage);
@@ -648,6 +664,7 @@ public class ManageCars extends javax.swing.JPanel {
     private javax.swing.JLabel lblmodel;
     private javax.swing.JLabel lblplate;
     private javax.swing.JLabel lblprice;
+    private javax.swing.JLabel lblprice1;
     private javax.swing.JTextField model;
     private javax.swing.JTextField plateno;
     private javax.swing.JTextField price;
@@ -657,5 +674,6 @@ public class ManageCars extends javax.swing.JPanel {
     private javax.swing.JButton selectimagebtn;
     private javax.swing.JTable table;
     private javax.swing.JButton updateCar;
+    private javax.swing.JTextField yearmodel;
     // End of variables declaration//GEN-END:variables
 }

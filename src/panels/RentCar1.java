@@ -1,8 +1,14 @@
 package panels;
 
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.sql.*;
 import java.util.HashSet;
 import java.util.Set;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 
 public class RentCar1 extends javax.swing.JPanel {
@@ -13,6 +19,7 @@ public class RentCar1 extends javax.swing.JPanel {
 
     public RentCar1() {
         initComponents();
+        populateCarImages();
     }
 
     public void populateComboBox() {
@@ -25,7 +32,7 @@ public class RentCar1 extends javax.swing.JPanel {
                 while (rs.next()) {
                     String brand = rs.getString("brand");
                     String color = rs.getString("color");
-                    
+
                     if (!existingBrands.contains(brand)) {
                         brandComboBox.addItem(brand);
                         existingBrands.add(brand);
@@ -35,7 +42,7 @@ public class RentCar1 extends javax.swing.JPanel {
                         existingColors.add(color);
                     }
                 }
-                
+
                 con.close();
             }
         } catch (SQLException e) {
@@ -62,26 +69,59 @@ public class RentCar1 extends javax.swing.JPanel {
         }
     }
     
+    private void populateCarImages() {
+        contentPanel.removeAll();
+        contentPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+        try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
+            String query = "SELECT brand, model, picture FROM cars";
+
+            try (PreparedStatement statement = con.prepareStatement(query); ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    String brand = rs.getString("brand");
+                    String model = rs.getString("model");
+                    byte[] imageData = rs.getBytes("picture");
+
+                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData));
+                    JLabel imageLabel = new JLabel(new ImageIcon(img));
+                    JButton rentButton = new JButton("Rent a " + brand + " " + model);
+
+                    rentButton.addActionListener(e -> {
+                        JOptionPane.showMessageDialog(this, "Renting " + brand + " " + model);
+                    });
+
+                    JPanel carPanel = new JPanel(new BorderLayout());
+                    carPanel.add(imageLabel, BorderLayout.CENTER);
+                    carPanel.add(rentButton, BorderLayout.SOUTH);
+                    contentPanel.add(carPanel);
+                }
+            }
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load car images.");
+        }
+
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanel1 = new javax.swing.JPanel();
-        kGradientPanel1 = new keeptoo.KGradientPanel();
+        upperpanel = new keeptoo.KGradientPanel();
         jLabel1 = new javax.swing.JLabel();
         brandComboBox = new javax.swing.JComboBox<>();
         jLabel2 = new javax.swing.JLabel();
         modelComboBox = new javax.swing.JComboBox<>();
         jLabel3 = new javax.swing.JLabel();
         colorcb = new javax.swing.JComboBox<>();
-        jScrollPane1 = new javax.swing.JScrollPane();
+        contentPanel = new javax.swing.JPanel();
+        scrollpane = new javax.swing.JScrollPane();
 
         setBackground(new java.awt.Color(255, 255, 255));
 
-        jPanel1.setBackground(java.awt.Color.white);
-
-        kGradientPanel1.setkEndColor(new java.awt.Color(255, 204, 255));
-        kGradientPanel1.setkStartColor(new java.awt.Color(204, 204, 255));
+        upperpanel.setkEndColor(new java.awt.Color(255, 204, 255));
+        upperpanel.setkStartColor(new java.awt.Color(204, 204, 255));
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel1.setText("Brand:");
@@ -105,11 +145,11 @@ public class RentCar1 extends javax.swing.JPanel {
         colorcb.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         colorcb.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "All" }));
 
-        javax.swing.GroupLayout kGradientPanel1Layout = new javax.swing.GroupLayout(kGradientPanel1);
-        kGradientPanel1.setLayout(kGradientPanel1Layout);
-        kGradientPanel1Layout.setHorizontalGroup(
-            kGradientPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(kGradientPanel1Layout.createSequentialGroup()
+        javax.swing.GroupLayout upperpanelLayout = new javax.swing.GroupLayout(upperpanel);
+        upperpanel.setLayout(upperpanelLayout);
+        upperpanelLayout.setHorizontalGroup(
+            upperpanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(upperpanelLayout.createSequentialGroup()
                 .addGap(19, 19, 19)
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -122,13 +162,13 @@ public class RentCar1 extends javax.swing.JPanel {
                 .addComponent(jLabel3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(colorcb, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(345, Short.MAX_VALUE))
+                .addContainerGap(1345, Short.MAX_VALUE))
         );
-        kGradientPanel1Layout.setVerticalGroup(
-            kGradientPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(kGradientPanel1Layout.createSequentialGroup()
+        upperpanelLayout.setVerticalGroup(
+            upperpanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(upperpanelLayout.createSequentialGroup()
                 .addGap(15, 15, 15)
-                .addGroup(kGradientPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(upperpanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
                     .addComponent(brandComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(modelComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -138,34 +178,32 @@ public class RentCar1 extends javax.swing.JPanel {
                 .addContainerGap(16, Short.MAX_VALUE))
         );
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(kGradientPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(19, 19, 19)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 960, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        contentPanel.setBackground(java.awt.Color.white);
+
+        javax.swing.GroupLayout contentPanelLayout = new javax.swing.GroupLayout(contentPanel);
+        contentPanel.setLayout(contentPanelLayout);
+        contentPanelLayout.setHorizontalGroup(
+            contentPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(scrollpane)
         );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(kGradientPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 460, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(21, Short.MAX_VALUE))
+        contentPanelLayout.setVerticalGroup(
+            contentPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(scrollpane, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 466, Short.MAX_VALUE)
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(contentPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(upperpanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addComponent(upperpanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, 0)
+                .addComponent(contentPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -173,6 +211,7 @@ public class RentCar1 extends javax.swing.JPanel {
         if (evt.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
             String selectedBrand = (String) brandComboBox.getSelectedItem();
             populateModelsForBrand(selectedBrand);
+            populateCarImages();
         }
     }//GEN-LAST:event_brandComboBoxItemStateChanged
 
@@ -180,12 +219,12 @@ public class RentCar1 extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> brandComboBox;
     private javax.swing.JComboBox<String> colorcb;
+    private javax.swing.JPanel contentPanel;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JScrollPane jScrollPane1;
-    private keeptoo.KGradientPanel kGradientPanel1;
     private javax.swing.JComboBox<String> modelComboBox;
+    private javax.swing.JScrollPane scrollpane;
+    private keeptoo.KGradientPanel upperpanel;
     // End of variables declaration//GEN-END:variables
 }

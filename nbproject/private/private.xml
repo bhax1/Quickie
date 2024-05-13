@@ -5,7 +5,8 @@
         <group name="Group 20230302-11:25:58">
             <file>file:/C:/Users/Bob/OneDrive/Documents/NetBeansProjects/CarRentalServices/src/panels/RentCar1.java</file>
             <file>file:/C:/Users/Bob/OneDrive/Documents/NetBeansProjects/CarRentalServices/src/panels/RentCar.java</file>
-            <file>file:/C:/Users/Bob/OneDrive/Documents/NetBeansProjects/CarRentalServices/src/GUI/Dashboard.java</file>
+            <file>file:/C:/Users/Bob/OneDrive/Documents/NetBeansProjects/CarRentalServices/src/panels/ManageCars.java</file>
+            <file>file:/C:/Users/Bob/OneDrive/Documents/NetBeansProjects/CarRentalServices/src/panels/ManageEmployees.java</file>
         </group>
     </open-files>
 </project-private>
