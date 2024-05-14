@@ -1,8 +1,9 @@
 package GUI;
 
 import java.awt.Toolkit;
+import javax.swing.JOptionPane;
 import panels.DashboardPanel;
-import panels.RentCar1;
+import panels.RentCar;
 import panels.ReturnCar;
 
 public class Dashboard extends javax.swing.JFrame {
@@ -182,7 +183,7 @@ public class Dashboard extends javax.swing.JFrame {
     }//GEN-LAST:event_dashboardbtnActionPerformed
 
     private void rentcarbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rentcarbtnActionPerformed
-        RentCar1 m = new RentCar1();
+        RentCar m = new RentCar();
         tabbedPane.removeAll();
         m.populateComboBox();
         tabbedPane.add(m);
@@ -199,7 +200,12 @@ public class Dashboard extends javax.swing.JFrame {
     }//GEN-LAST:event_returncarbtnActionPerformed
 
     private void logoutbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_logoutbtnActionPerformed
-        
+        int option = JOptionPane.showConfirmDialog(this, "Are you sure you want to logout?", "Logging Out", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            this.dispose();
+            Login l = new Login();
+            l.setVisible(true);
+        }
     }//GEN-LAST:event_logoutbtnActionPerformed
 
     public static void main(String args[]) {

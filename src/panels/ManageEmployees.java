@@ -1,8 +1,6 @@
 package panels;
 
-import java.awt.BorderLayout;
 import java.awt.Graphics2D;
-import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -31,28 +29,38 @@ public class ManageEmployees extends javax.swing.JPanel {
             BufferedImage img = ImageIO.read(imageFile);
             int width = img.getWidth();
             int height = img.getHeight();
-            return (width <= 600 && height <= 600); // Check against maximum 600x600 size
+            return (width <= 600 && height <= 600);
         } catch (IOException e) {
         }
         return false;
     }
     
-    private static Image scaleImage(BufferedImage img, int targetWidth, int targetHeight) {
-        int originalWidth = img.getWidth();
-        int originalHeight = img.getHeight();
-        double scaleFactor = Math.min((double) targetWidth / originalWidth, (double) targetHeight / originalHeight);
+    private BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        int width = originalImage.getWidth();
+        int height = originalImage.getHeight();
+        double aspectRatio = (double) width / height;
 
-        int scaledWidth = (int) (originalWidth * scaleFactor);
-        int scaledHeight = (int) (originalHeight * scaleFactor);
+        if (width > targetWidth || height > targetHeight) {
+            if (aspectRatio > 1) {
+                width = targetWidth;
+                height = (int) (targetWidth / aspectRatio);
+            } else {
+                height = targetHeight;
+                width = (int) (targetHeight * aspectRatio);
+            }
+        } else {
+            width = targetWidth;
+            height = targetHeight;
+        }
 
-        Image scaledImage = img.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
-        BufferedImage bufferedImage = new BufferedImage(scaledWidth, scaledHeight, BufferedImage.TYPE_INT_ARGB);
+        Image tmp = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        BufferedImage resizedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
-        Graphics2D g2d = bufferedImage.createGraphics();
-        g2d.drawImage(scaledImage, 0, 0, null);
+        Graphics2D g2d = resizedImage.createGraphics();
+        g2d.drawImage(tmp, 0, 0, null);
         g2d.dispose();
 
-        return bufferedImage;
+        return resizedImage;
     }
 
     public void populateTable() {
@@ -407,9 +415,7 @@ public class ManageEmployees extends javax.swing.JPanel {
             if (isImageSizeValid(selectedFile)) {
                 try {
                     BufferedImage img = ImageIO.read(selectedFile);
-
-                    // Scale the image to fit within a 300x300 panel while preserving aspect ratio
-                    ImageIcon imageIcon = new ImageIcon(scaleImage(img, 300, 300));
+                    ImageIcon imageIcon = new ImageIcon(resizeImage(img, imageLabel.getWidth(), imageLabel.getHeight()));
                     imageLabel.setIcon(imageIcon);
 
                     JOptionPane.showMessageDialog(this, "Image has been selected.");
@@ -577,9 +583,7 @@ public class ManageEmployees extends javax.swing.JPanel {
             
             byte[] imageData = (byte[]) model.getValueAt(row, 6);
             BufferedImage originalImage = getImageFromByteArray(imageData);
-
-            Image scaledImage = originalImage.getScaledInstance(300, 300, Image.SCALE_SMOOTH);
-            ImageIcon imageIcon = new ImageIcon(scaledImage);
+            ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, imageLabel.getWidth(), imageLabel.getHeight()));
             imageLabel.setIcon(imageIcon);
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Image not found", "Error", JOptionPane.ERROR_MESSAGE);
@@ -616,9 +620,7 @@ public class ManageEmployees extends javax.swing.JPanel {
 
                     byte[] imageData = (byte[]) model.getValueAt(i, 6);
                     BufferedImage originalImage = getImageFromByteArray(imageData);
-
-                    Image scaledImage = originalImage.getScaledInstance(300, 300, Image.SCALE_SMOOTH);
-                    ImageIcon imageIcon = new ImageIcon(scaledImage);
+                    ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, imageLabel.getWidth(), imageLabel.getHeight()));
                     imageLabel.setIcon(imageIcon);
 
                     found = true;

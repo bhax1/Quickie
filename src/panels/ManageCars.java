@@ -1,5 +1,7 @@
 package panels;
 
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
@@ -19,17 +21,6 @@ public class ManageCars extends javax.swing.JPanel {
 
     public ManageCars() {
         initComponents();
-    }
-
-    private static boolean isImageSizeValid(File imageFile) {
-        try {
-            BufferedImage img = ImageIO.read(imageFile);
-            int width = img.getWidth();
-            int height = img.getHeight();
-            return (width <= 300 && height <= 200);
-        } catch (IOException e) {
-        }
-        return false;
     }
 
     public void populateTable() {
@@ -64,6 +55,34 @@ public class ManageCars extends javax.swing.JPanel {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Unexpected error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    private BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        int width = originalImage.getWidth();
+        int height = originalImage.getHeight();
+        double aspectRatio = (double) width / height;
+
+        if (width > targetWidth || height > targetHeight) {
+            if (aspectRatio > 1) {
+                width = targetWidth;
+                height = (int) (targetWidth / aspectRatio);
+            } else {
+                height = targetHeight;
+                width = (int) (targetHeight * aspectRatio);
+            }
+        } else {
+            width = targetWidth;
+            height = targetHeight;
+        }
+
+        Image tmp = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        BufferedImage resizedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+        Graphics2D g2d = resizedImage.createGraphics();
+        g2d.drawImage(tmp, 0, 0, null);
+        g2d.dispose();
+
+        return resizedImage;
     }
 
     public void clear() {
@@ -408,74 +427,19 @@ public class ManageCars extends javax.swing.JPanel {
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             selectedFile = fileChooser.getSelectedFile();
 
-            if (isImageSizeValid(selectedFile)) {
                 try {
                     BufferedImage img = ImageIO.read(selectedFile);
-                    ImageIcon imageIcon = new ImageIcon(img);
+                    ImageIcon imageIcon = new ImageIcon(resizeImage(img, imageLabel.getWidth(), imageLabel.getHeight()));
                     imageLabel.setIcon(imageIcon);
 
                     JOptionPane.showMessageDialog(this, "Image has been selected.");
                 } catch (IOException ex) {
                     JOptionPane.showMessageDialog(this, "Error loading image.");
                 }
-            } else {
-                JOptionPane.showMessageDialog(this, "Image size exceeds 300x200 pixels. Please select a smaller image.");
-            }
+            
         }
     }//GEN-LAST:event_selectimagebtnActionPerformed
-
-    private void addCarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addCarActionPerformed
-        String brandText = brand.getText();
-        String modelText = model.getText();
-        String yearmodelText = yearmodel.getText();
-        String fuelTypeText = fueltype.getText();
-        String colorText = color.getText();
-        String platenoText = plateno.getText();
-        String priceText = price.getText();
-
-        if (brandText.isBlank() || modelText.isBlank() || yearmodelText.isBlank() || colorText.isBlank() || fuelTypeText.isBlank() || platenoText.isBlank() || priceText.isBlank()) {
-            JOptionPane.showMessageDialog(this, "Please enter all fields.");
-        } else if (selectedFile == null) {
-            JOptionPane.showMessageDialog(this, "Please select an image first before proceeding.");
-        } else {
-            try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
-                int yearmodels = Integer.parseInt(yearmodelText);
-                
-                String insertQuery = "INSERT INTO cars (brand, model, yearmodel, fueltype, color, platenumber, price, picture) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-                PreparedStatement ps = con.prepareStatement(insertQuery);
-
-                ps.setString(1, brandText);
-                ps.setString(2, modelText);
-                ps.setInt(3, yearmodels);
-                ps.setString(4, fuelTypeText);
-                ps.setString(5, colorText);
-                ps.setString(6, platenoText);
-                ps.setBigDecimal(7, new BigDecimal(priceText));
-
-                FileInputStream fis = new FileInputStream(selectedFile);
-                ps.setBinaryStream(8, fis);
-
-                int rowsAffected = ps.executeUpdate();
-                if (rowsAffected > 0) {
-                    JOptionPane.showMessageDialog(this, "Car added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    populateTable();
-                    clear();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Failed to add car.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-
-                ps.close();
-                fis.close();
-                con.close();
-
-            } catch (SQLException | IOException ex) {
-                JOptionPane.showMessageDialog(this, "Database error occurred: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            } catch (NumberFormatException ne) {
-                JOptionPane.showMessageDialog(this, "Invalid price.");
-            }
-        }
-    }//GEN-LAST:event_addCarActionPerformed
-
+    
     private void removeCarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_removeCarActionPerformed
         DefaultTableModel tmodel = (DefaultTableModel) table.getModel();
         int row = table.getSelectedRow();
@@ -587,7 +551,7 @@ public class ManageCars extends javax.swing.JPanel {
             
             byte[] imageData = (byte[]) tmodel.getValueAt(row, 8);
             BufferedImage originalImage = getImageFromByteArray(imageData);
-            ImageIcon imageIcon = new ImageIcon(originalImage);
+            ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, imageLabel.getWidth(), imageLabel.getHeight()));
             imageLabel.setIcon(imageIcon);
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Database error occurred: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -626,8 +590,7 @@ public class ManageCars extends javax.swing.JPanel {
 
                     byte[] imageData = (byte[]) tmodel.getValueAt(i, 8);
                     BufferedImage originalImage = getImageFromByteArray(imageData);
-
-                    ImageIcon imageIcon = new ImageIcon(originalImage);
+                    ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, imageLabel.getWidth(), imageLabel.getHeight()));
                     imageLabel.setIcon(imageIcon);
 
                     found = true;
@@ -645,6 +608,58 @@ public class ManageCars extends javax.swing.JPanel {
             JOptionPane.showMessageDialog(this, "Error loading image: " + ex.getMessage(), "Image Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_searchbtnActionPerformed
+
+    private void addCarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addCarActionPerformed
+        String brandText = brand.getText();
+        String modelText = model.getText();
+        String yearmodelText = yearmodel.getText();
+        String fuelTypeText = fueltype.getText();
+        String colorText = color.getText();
+        String platenoText = plateno.getText();
+        String priceText = price.getText();
+
+        if (brandText.isBlank() || modelText.isBlank() || yearmodelText.isBlank() || colorText.isBlank() || fuelTypeText.isBlank() || platenoText.isBlank() || priceText.isBlank()) {
+            JOptionPane.showMessageDialog(this, "Please enter all fields.");
+        } else if (selectedFile == null) {
+            JOptionPane.showMessageDialog(this, "Please select an image first before proceeding.");
+        } else {
+            try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
+                int yearmodels = Integer.parseInt(yearmodelText);
+
+                String insertQuery = "INSERT INTO cars (brand, model, yearmodel, fueltype, color, platenumber, price, picture) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                PreparedStatement ps = con.prepareStatement(insertQuery);
+
+                ps.setString(1, brandText);
+                ps.setString(2, modelText);
+                ps.setInt(3, yearmodels);
+                ps.setString(4, fuelTypeText);
+                ps.setString(5, colorText);
+                ps.setString(6, platenoText);
+                ps.setBigDecimal(7, new BigDecimal(priceText));
+
+                FileInputStream fis = new FileInputStream(selectedFile);
+                ps.setBinaryStream(8, fis);
+
+                int rowsAffected = ps.executeUpdate();
+                if (rowsAffected > 0) {
+                    JOptionPane.showMessageDialog(this, "Car added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    populateTable();
+                    clear();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Failed to add car.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+
+                ps.close();
+                fis.close();
+                con.close();
+
+            } catch (SQLException | IOException ex) {
+                JOptionPane.showMessageDialog(this, "Database error occurred: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            } catch (NumberFormatException ne) {
+                JOptionPane.showMessageDialog(this, "Invalid price.");
+            }
+        }
+    }//GEN-LAST:event_addCarActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton addCar;
