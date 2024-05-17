@@ -7,10 +7,14 @@ import panels.RentCar;
 import panels.ReturnCar;
 
 public class Dashboard extends javax.swing.JFrame {
-
+    
     public Dashboard() {
         initComponents();
         setIconImage(Toolkit.getDefaultToolkit().getImage(Login.class.getResource("/pics/quickielogo.png")));
+    }
+    
+    public javax.swing.JTabbedPane getTabbedPane() {
+        return tabbedPane;
     }
 
     @SuppressWarnings("unchecked")
@@ -202,6 +206,7 @@ public class Dashboard extends javax.swing.JFrame {
     private void logoutbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_logoutbtnActionPerformed
         int option = JOptionPane.showConfirmDialog(this, "Are you sure you want to logout?", "Logging Out", JOptionPane.OK_CANCEL_OPTION);
         if (option == JOptionPane.OK_OPTION) {
+            Session.clearSession();
             this.dispose();
             Login l = new Login();
             l.setVisible(true);

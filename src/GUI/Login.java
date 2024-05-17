@@ -3,8 +3,6 @@ package GUI;
 import com.formdev.flatlaf.FlatLightLaf;
 import java.awt.Toolkit;
 import java.sql.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 public class Login extends javax.swing.JFrame {
@@ -211,6 +209,10 @@ public class Login extends javax.swing.JFrame {
             checkPs.setString(2, pass);
             ResultSet rs = checkPs.executeQuery();
             if (rs.next()) {
+                int employeeId = rs.getInt("id");
+                String employeeName = rs.getString("fname");
+                Session.setLoggedInEmployee(employeeId, employeeName);
+
                 Dashboard d = new Dashboard();
                 dispose();
                 JOptionPane.showMessageDialog(this, "Login successfully.");

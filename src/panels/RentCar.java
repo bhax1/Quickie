@@ -1,5 +1,6 @@
 package panels;
 
+import GUI.Dashboard;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -13,6 +14,8 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
@@ -125,9 +128,9 @@ public class RentCar extends javax.swing.JPanel {
             String selectedColor = (String) colorcb.getSelectedItem(); // Get selected color
 
             if (selectedBrand.equals("All")) {
-                query = "SELECT brand, model, yearmodel, fueltype, color, price, picture FROM cars";
+                query = "SELECT id, brand, model, yearmodel, fueltype, color, price, picture FROM cars";
             } else {
-                query = "SELECT brand, model, yearmodel, fueltype, color, price, picture FROM cars WHERE brand = ? ";   
+                query = "SELECT id, brand, model, yearmodel, fueltype, color, price, picture FROM cars WHERE brand = ?";
             }
 
             try (PreparedStatement statement = con.prepareStatement(query)) {
@@ -137,13 +140,14 @@ public class RentCar extends javax.swing.JPanel {
 
                 try (ResultSet rs = statement.executeQuery()) {
                     while (rs.next()) {
+                        int carid = rs.getInt("id");
                         String brand = rs.getString("brand");
                         String model = rs.getString("model");
                         String color = rs.getString("color");
 
                         if ((selectedBrand.equals("All") || model.equals(selectedModel)) 
                                 && (selectedColor.equals("All") || color.equals(selectedColor))) {
-                            String yearmodel = rs.getString("yearmodel");
+                            int yearmodel = rs.getInt("yearmodel");
                             String fueltype = rs.getString("fueltype");
                             BigDecimal price = rs.getBigDecimal("price");
                             byte[] imageData = rs.getBytes("picture");
@@ -155,7 +159,11 @@ public class RentCar extends javax.swing.JPanel {
                                 JButton rentButton = new JButton("Rent a " + brand + " " + model);
 
                                 rentButton.addActionListener(e -> {
-                                    JOptionPane.showMessageDialog(this, "Renting " + brand + " " + model);
+                                    try {
+                                        rentCar(carid, brand, model, yearmodel, fueltype, color, price, imageData);
+                                    } catch (IOException ex) {
+                                        Logger.getLogger(RentCar.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
                                 });
 
                                 JPanel carDetailsPanel = new JPanel(new GridLayout(0, 1));
@@ -194,6 +202,18 @@ public class RentCar extends javax.swing.JPanel {
         contentPanel.add(scrollPane, BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
+    }
+
+    private void rentCar(int carid, String brand, String model, int year, String fuelType, String color, BigDecimal price, byte[] image) throws IOException {
+        Dashboard dashboard = (Dashboard) SwingUtilities.getWindowAncestor(this);
+        if (dashboard != null) {
+            dashboard.getTabbedPane().removeAll(); // Remove all tabs
+
+            // Create and add transaction panel
+            TransactionPanel transactionPanel = new TransactionPanel(carid, brand, model, year, fuelType, color, price, image);
+            dashboard.getTabbedPane().add("", transactionPanel);
+            dashboard.getTabbedPane().setSelectedComponent(transactionPanel);
+        }
     }
 
     @SuppressWarnings("unchecked")

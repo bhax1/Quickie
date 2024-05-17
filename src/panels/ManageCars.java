@@ -493,8 +493,8 @@ public class ManageCars extends javax.swing.JPanel {
                 try {
                     int yearmodels = Integer.parseInt(yearmodelText);
                     int carid = Integer.parseInt(id);
-
-                    try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
+                    
+                    try (Connection con = DriverManager.getConnection(url, sqluser,  sqlpass)) {
                         String query = "UPDATE cars SET brand = ?, model = ?, yearmodel = ?, fueltype = ?, color = ?, platenumber = ?, price = ?, picture = ? WHERE id = ?";
                         try (PreparedStatement ps = con.prepareStatement(query)) {
                             ps.setString(1, brandText);
