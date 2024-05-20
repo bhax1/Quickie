@@ -11,7 +11,7 @@ public class DashboardPanelAdmin extends javax.swing.JPanel {
 
     String url = "jdbc:mariadb://localhost:3306/carrental";
     String sqluser = "root";
-    String sqlpass = "12345";
+    String sqlpass = "";
     
     public DashboardPanelAdmin() {
         initComponents();

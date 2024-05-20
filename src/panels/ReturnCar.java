@@ -17,7 +17,7 @@ public class ReturnCar extends javax.swing.JPanel {
 
     String url = "jdbc:mariadb://localhost:3306/carrental";
     String sqluser = "root";
-    String sqlpass = "12345";
+    String sqlpass = "";
     
     boolean transactIDFound = false;
     
@@ -315,31 +315,40 @@ public class ReturnCar extends javax.swing.JPanel {
             if (proceed) {
                 int loggedInEmployeeId = Session.getLoggedInEmployeeId();
                 try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
-                    String insertQuery = "INSERT INTO return_transactions (transact_id, excess_fee, pay, `transact_date`) VALUES (?, ?, ?, ?)";
-                    PreparedStatement ps = con.prepareStatement(insertQuery);
-
-                    ps.setInt(1, loggedInEmployeeId);
-                    ps.setInt(2, Integer.parseInt(transactID));
-                    ps.setBigDecimal(3, new BigDecimal(penalty));
-                    ps.setBigDecimal(4, new BigDecimal(payment));
-                    ps.setTimestamp(5, new java.sql.Timestamp(System.currentTimeMillis()));
-
-                    int rowsInserted = ps.executeUpdate();
-                    if (rowsInserted > 0) {
+                    // Check if the transaction already exists
+                    String checkQuery = "SELECT COUNT(*) FROM return_transactions WHERE transact_id = ?";
+                    try (PreparedStatement checkPs = con.prepareStatement(checkQuery)) {
+                        checkPs.setInt(1, Integer.parseInt(transactID));
+                        ResultSet rs = checkPs.executeQuery();
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            JOptionPane.showMessageDialog(this, "This transaction has already been processed.", "Error", JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
                     }
 
-                    String query = "UPDATE transactions SET status = ? WHERE id = ?";
-                    try (PreparedStatement pss = con.prepareStatement(query)) {
-                        pss.setString(1, "RETURNED");
-                        pss.setInt(2, Integer.parseInt(transactID));
+                    String insertQuery = "INSERT INTO return_transactions (employeeid, transact_id, excess_fee, pay, transact_date) VALUES (?, ?, ?, ?, ?)";
+                    try (PreparedStatement ps = con.prepareStatement(insertQuery)) {
+                        ps.setInt(1, loggedInEmployeeId);
+                        ps.setInt(2, Integer.parseInt(transactID));
+                        ps.setBigDecimal(3, new BigDecimal(penalty));
+                        ps.setBigDecimal(4, new BigDecimal(payment));
+                        ps.setTimestamp(5, new java.sql.Timestamp(System.currentTimeMillis()));
 
-                        int rowsUpdated = pss.executeUpdate();
-                        if (rowsUpdated > 0) {
-                            JOptionPane.showMessageDialog(this, "Car returned successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                        } else {
-                            JOptionPane.showMessageDialog(this, "Failed update transaction.", "Error", JOptionPane.INFORMATION_MESSAGE);
-                        } 
-                    }        
+                        int rowsInserted = ps.executeUpdate();
+                        if (rowsInserted > 0) {
+                            String updateQuery = "UPDATE transactions SET status = ? WHERE id = ?";
+                            try (PreparedStatement pss = con.prepareStatement(updateQuery)) {
+                                pss.setString(1, "RETURNED");
+                                pss.setInt(2, Integer.parseInt(transactID));
+                                int rowsUpdated = pss.executeUpdate();
+                                if (rowsUpdated > 0) {
+                                    JOptionPane.showMessageDialog(this, "Car returned successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                                } else {
+                                    JOptionPane.showMessageDialog(this, "Failed to update transaction.", "Error", JOptionPane.INFORMATION_MESSAGE);
+                                }
+                            }
+                        }
+                    }
                 } catch (SQLException ex) {
                     JOptionPane.showMessageDialog(this, "Database error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 }

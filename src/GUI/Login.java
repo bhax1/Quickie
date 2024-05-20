@@ -10,7 +10,7 @@ public class Login extends javax.swing.JFrame {
     boolean hidetext = true;
     String url = "jdbc:mariadb://localhost:3306/carrental";
     String sqluser = "root";
-    String sqlpass = "12345";
+    String sqlpass = "";
     
     public Login() {
         initComponents();

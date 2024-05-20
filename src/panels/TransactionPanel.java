@@ -23,7 +23,7 @@ public class TransactionPanel extends javax.swing.JPanel {
 
     private final String url = "jdbc:mariadb://localhost:3306/carrental";
     private final String sqluser = "root";
-    private final String sqlpass = "12345";
+    private final String sqlpass = "";
     
     private Date borrowDate;
     private Date returnDate;
@@ -562,7 +562,7 @@ public class TransactionPanel extends javax.swing.JPanel {
                     "Employee: " + Session.getLoggedInEmployeeId() + "\n" +
                     "Date: " + new java.util.Date() + "\n" +
                     "Items:\n" +
-                    "- Car Rental: " + carID + "\n" +
+                    "- Car ID: " + carID + "\n" +
                     "- Total: " + totalFee + "\n" +
                     "Payment Details:\n" +
                     "- Amount Paid: " + paymentText + "\n" +
@@ -645,10 +645,10 @@ public class TransactionPanel extends javax.swing.JPanel {
 
                         con.commit();
 
-                        String fileName = "transaction_details[Transaction ID:"+transactId+"].txt";
+                        String fileName = "transaction_details.txt";
                         String filePath = System.getProperty("user.home") + "/Downloads/" + fileName;
                         try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
-                            writer.println("Transaction Details: " + transactId); // Include the transaction ID in the file
+                            writer.println("Transaction Details: " + transactId);
                             writer.println("Transaction ID: " + transactId);
                             writer.println("Employee ID: " + loggedInEmployeeId);
                             writer.println("Client ID: " + clientId);
