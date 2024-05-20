@@ -7,6 +7,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.swing.JOptionPane;
+import panels.DashboardPanelAdmin;
 
 public class LoginAdmin extends javax.swing.JFrame {
 

@@ -3,9 +3,8 @@ package GUI;
 import java.awt.Toolkit;
 import javax.swing.JOptionPane;
 import panels.ManageCars;
-import panels.DashboardPanel;
+import panels.DashboardPanelAdmin;
 import panels.ManageEmployees;
-import panels.ReturnCar;
 
 public class DashboardAdmin extends javax.swing.JFrame {
 
@@ -185,13 +184,15 @@ public class DashboardAdmin extends javax.swing.JFrame {
     }//GEN-LAST:event_managecarActionPerformed
 
     private void dashboardbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dashboardbtnActionPerformed
-        DashboardPanel m = new DashboardPanel();
+        DashboardPanelAdmin m = new DashboardPanelAdmin();
+        m.count();
         tabbedPane.removeAll();
         tabbedPane.add(m);
     }//GEN-LAST:event_dashboardbtnActionPerformed
 
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
-        ReturnCar m = new ReturnCar();
+        DashboardPanelAdmin m = new DashboardPanelAdmin();
+        m.count();
         tabbedPane.removeAll();
         tabbedPane.add(m);
     }//GEN-LAST:event_formWindowOpened

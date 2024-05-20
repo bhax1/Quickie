@@ -205,15 +205,15 @@ public class RentCar extends javax.swing.JPanel {
     }
 
     private void rentCar(int carid, String brand, String model, int year, String fuelType, String color, BigDecimal price, byte[] image) throws IOException {
-        Dashboard dashboard = (Dashboard) SwingUtilities.getWindowAncestor(this);
-        if (dashboard != null) {
-            dashboard.getTabbedPane().removeAll(); // Remove all tabs
+            Dashboard dashboard = (Dashboard) SwingUtilities.getWindowAncestor(this);
+            if (dashboard != null) {
+                dashboard.getTabbedPane().removeAll(); // Remove all tabs
 
-            // Create and add transaction panel
-            TransactionPanel transactionPanel = new TransactionPanel(carid, brand, model, year, fuelType, color, price, image);
-            dashboard.getTabbedPane().add("", transactionPanel);
-            dashboard.getTabbedPane().setSelectedComponent(transactionPanel);
-        }
+                // Create and add transaction panel
+                TransactionPanel transactionPanel = new TransactionPanel(carid, brand, model, year, fuelType, color, price, image);
+                dashboard.getTabbedPane().add("", transactionPanel);
+                dashboard.getTabbedPane().setSelectedComponent(transactionPanel);
+            }
     }
 
     @SuppressWarnings("unchecked")
@@ -277,15 +277,15 @@ public class RentCar extends javax.swing.JPanel {
                 .addGap(19, 19, 19)
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(brandComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(brandComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jLabel2)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(modelComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(modelComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jLabel3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(colorcb, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(colorcb, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         upperpanelLayout.setVerticalGroup(

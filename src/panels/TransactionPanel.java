@@ -1,58 +1,87 @@
 package panels;
 
+import GUI.Dashboard;
 import GUI.Session;
-import com.toedter.calendar.JCalendar;
-import java.awt.Graphics2D;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
-import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-import java.awt.Image;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
+import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
-import javax.swing.JOptionPane;
+import java.util.GregorianCalendar;
+import java.util.concurrent.TimeUnit;
+import javax.imageio.ImageIO;
 
 public class TransactionPanel extends javax.swing.JPanel {
 
-    String url = "jdbc:mariadb://localhost:3306/carrental";
-    String sqluser = "root";
-    String sqlpass = "12345";
+    private final String url = "jdbc:mariadb://localhost:3306/carrental";
+    private final String sqluser = "root";
+    private final String sqlpass = "12345";
     
     private Date borrowDate;
     private Date returnDate;
-    
+    private final int carID;
+    private final BigDecimal pricing;
+    private BigDecimal totalFee;
+
     public TransactionPanel(int carid, String brand, String model, int year, String fuelType, String color, BigDecimal price, byte[] image) throws IOException {
         initComponents();
-
+        carID = carid;
+        pricing = price;
         BufferedImage originalImage = getImageFromByteArray(image);
         ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, 300, 200));
         imageLabel.setIcon(imageIcon);
-        lblbrand.setText("<html><b>Brand:</b> " + brand + "</html>");
-        lblmodel.setText("<html><b>Model:</b> " + model + "</html>");
-        lblfueltype.setText("<html><b>Fuel Type:</b> " + fuelType + "</html>");
-        lblcolor.setText("<html><b>Color:</b> " + color + "</html>");
-        lblyearmodel.setText("<html><b>Year Model:</b> " + year + "</html>");
-        lblprice.setText("<html><b>Daily Price:</b> " + price.toString() + "</html>");
-    }
-
-    private static BufferedImage getImageFromByteArray(byte[] imageData) throws IOException {
-        ByteArrayInputStream bis = new ByteArrayInputStream(imageData);
-        return ImageIO.read(bis);
+        lblbrand.setText(String.format("<html><b>Brand:</b> %s</html>", brand));
+        lblmodel.setText(String.format("<html><b>Model:</b> %s</html>", model));
+        lblfueltype.setText(String.format("<html><b>Fuel Type:</b> %s</html>", fuelType));
+        lblcolor.setText(String.format("<html><b>Color:</b> %s</html>", color));
+        lblyearmodel.setText(String.format("<html><b>Year Model:</b> %d</html>", year));
+        lblprice.setText(String.format("<html><b>Daily Price:</b> %s</html>", price.toString()));
+        fetchData(carID);
     }
     
+    private void fetchData(int carId) {
+        try (Connection connection = DriverManager.getConnection(url, sqluser, sqlpass)) {
+            String query = "SELECT borrow_date, return_date FROM transactions WHERE month(borrow_date) = ? AND year(borrow_date) = ? AND car_id = ?";
+
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setInt(1, monthChooser.getMonth() + 1);
+            statement.setInt(2, yearChooser.getYear());
+            statement.setInt(3, carId);
+
+            ResultSet resultSet = statement.executeQuery();
+
+            StringBuilder resultText = new StringBuilder();
+            while (resultSet.next()) {
+                String borrowDates = resultSet.getString("borrow_date");
+                String returnDates = resultSet.getString("return_date");
+                resultText.append("Borrow Date: ").append(borrowDates).append(", Return Date: ").append(returnDates).append("\n");
+            }
+
+            textArea.setText(resultText.toString());
+
+        } catch (SQLException e) {
+            
+        }
+    }
+
+
+    private static BufferedImage getImageFromByteArray(byte[] imageData) throws IOException {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(imageData)) {
+            return ImageIO.read(bis);
+        }
+    }
+
     private BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         int width = originalImage.getWidth();
         int height = originalImage.getHeight();
-
-        if (targetWidth <= 0 || targetHeight <= 0) {
-            throw new IllegalArgumentException("Target width and height must be positive values.");
-        }
-
         double aspectRatio = (double) width / height;
 
         if (width > targetWidth || height > targetHeight) {
@@ -66,10 +95,6 @@ public class TransactionPanel extends javax.swing.JPanel {
         } else {
             width = targetWidth;
             height = targetHeight;
-        }
-
-        if (width <= 0 || height <= 0) {
-            throw new IllegalArgumentException("Resized image dimensions must be non-zero.");
         }
 
         Image tmp = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
@@ -86,6 +111,10 @@ public class TransactionPanel extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        receipt = new javax.swing.JFrame();
+        jScrollPane4 = new javax.swing.JScrollPane();
+        textarea1 = new javax.swing.JTextArea();
+        printreceipt = new javax.swing.JButton();
         kGradientPanel1 = new keeptoo.KGradientPanel();
         imagepanel = new javax.swing.JPanel();
         imageLabel = new javax.swing.JLabel();
@@ -96,8 +125,7 @@ public class TransactionPanel extends javax.swing.JPanel {
         lblyearmodel = new javax.swing.JLabel();
         lblprice = new javax.swing.JLabel();
         jPanel1 = new javax.swing.JPanel();
-        borrowdate = new javax.swing.JButton();
-        returndate = new javax.swing.JButton();
+        borrowandreturn = new javax.swing.JButton();
         lblreturn = new javax.swing.JLabel();
         lblborrow = new javax.swing.JLabel();
         fname = new javax.swing.JTextField();
@@ -109,10 +137,33 @@ public class TransactionPanel extends javax.swing.JPanel {
         contact = new javax.swing.JTextField();
         email = new javax.swing.JTextField();
         proceedbtn = new javax.swing.JToggleButton();
-        jLabel5 = new javax.swing.JLabel();
-        totalfeelbl = new javax.swing.JLabel();
+        clientdetails = new javax.swing.JLabel();
+        lbltotalfee = new javax.swing.JLabel();
         paymentlbl = new javax.swing.JLabel();
-        lname1 = new javax.swing.JTextField();
+        payment = new javax.swing.JTextField();
+        monthChooser = new com.toedter.calendar.JMonthChooser();
+        yearChooser = new com.toedter.calendar.JYearChooser();
+        lblborrow1 = new javax.swing.JLabel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        textArea = new javax.swing.JTextArea();
+
+        receipt.setBackground(new java.awt.Color(204, 204, 255));
+        receipt.setResizable(false);
+        receipt.setSize(new java.awt.Dimension(350, 500));
+        receipt.getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        textarea1.setEditable(false);
+        textarea1.setBackground(new java.awt.Color(255, 255, 255));
+        textarea1.setColumns(20);
+        textarea1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        textarea1.setRows(5);
+        textarea1.setText("\tRECEIPT SLIP\n-----------------------------------------------\nClient Name:\nEmployee\n\nDate: \nTime: \n\nItems:\n- Car Rental:\n- Total:\n\nPayment Details:\n- Amount Paid: \n\n-----------------------------------------------\n\tQuickie Car Rental\n               Thank you for your business!");
+        jScrollPane4.setViewportView(textarea1);
+
+        receipt.getContentPane().add(jScrollPane4, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 14, 299, 369));
+
+        printreceipt.setText("Print");
+        receipt.getContentPane().add(printreceipt, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 401, 120, 36));
 
         setBackground(new java.awt.Color(255, 255, 255));
         setMinimumSize(new java.awt.Dimension(1000, 260));
@@ -123,7 +174,6 @@ public class TransactionPanel extends javax.swing.JPanel {
         kGradientPanel1.setkStartColor(new java.awt.Color(204, 204, 255));
 
         imagepanel.setBackground(new java.awt.Color(255, 255, 255));
-        imagepanel.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
         imagepanel.setPreferredSize(new java.awt.Dimension(300, 200));
 
         imageLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -134,7 +184,7 @@ public class TransactionPanel extends javax.swing.JPanel {
             imagepanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(imagepanelLayout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(imageLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+                .addComponent(imageLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 302, Short.MAX_VALUE)
                 .addContainerGap())
         );
         imagepanelLayout.setVerticalGroup(
@@ -142,7 +192,7 @@ public class TransactionPanel extends javax.swing.JPanel {
             .addGroup(imagepanelLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(imageLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(8, Short.MAX_VALUE))
         );
 
         lblbrand.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -206,17 +256,11 @@ public class TransactionPanel extends javax.swing.JPanel {
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
 
-        borrowdate.setText("Borrow Date");
-        borrowdate.addActionListener(new java.awt.event.ActionListener() {
+        borrowandreturn.setText("Borrow & Return Date");
+        borrowandreturn.setFocusPainted(false);
+        borrowandreturn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                borrowdateActionPerformed(evt);
-            }
-        });
-
-        returndate.setText("Return Date");
-        returndate.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                returndateActionPerformed(evt);
+                borrowandreturnActionPerformed(evt);
             }
         });
 
@@ -239,39 +283,51 @@ public class TransactionPanel extends javax.swing.JPanel {
         emaillbl.setText("Email");
 
         proceedbtn.setText("Proceed Transaction");
+        proceedbtn.setFocusPainted(false);
         proceedbtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 proceedbtnActionPerformed(evt);
             }
         });
 
-        jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        jLabel5.setText("Client Details");
+        clientdetails.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        clientdetails.setText("Client Details");
 
-        totalfeelbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        totalfeelbl.setText("Total Fee");
+        lbltotalfee.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lbltotalfee.setText("Total Fee:");
 
         paymentlbl.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         paymentlbl.setText("Payment");
+
+        monthChooser.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+            public void propertyChange(java.beans.PropertyChangeEvent evt) {
+                monthChooserPropertyChange(evt);
+            }
+        });
+
+        yearChooser.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+            public void propertyChange(java.beans.PropertyChangeEvent evt) {
+                yearChooserPropertyChange(evt);
+            }
+        });
+
+        lblborrow1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        lblborrow1.setText("Unavailable Booking Dates");
+
+        textArea.setColumns(20);
+        textArea.setRows(5);
+        jScrollPane2.setViewportView(textArea);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(61, Short.MAX_VALUE)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(returndate, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(lblreturn, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(41, 41, 41)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(borrowdate, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(lblborrow, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(58, 58, 58))
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(33, 33, 33)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 264, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(26, 26, 26)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(clientdetails, javax.swing.GroupLayout.PREFERRED_SIZE, 264, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(294, 294, 294))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(contactlbl)
@@ -280,139 +336,363 @@ public class TransactionPanel extends javax.swing.JPanel {
                             .addComponent(emaillbl))
                         .addGap(26, 26, 26)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(fname, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(email, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(9, 9, 9)
-                                .addComponent(proceedbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(lname, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(email, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(contact, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(47, 47, 47)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(proceedbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(33, 33, 33))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(fname, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(lname, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(paymentlbl, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(totalfeelbl))
-                                .addGap(18, 18, 18)
-                                .addComponent(lname1, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                                    .addGroup(jPanel1Layout.createSequentialGroup()
+                                        .addComponent(paymentlbl, javax.swing.GroupLayout.DEFAULT_SIZE, 65, Short.MAX_VALUE)
+                                        .addGap(18, 18, 18)
+                                        .addComponent(payment, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addComponent(lbltotalfee, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))))
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createSequentialGroup()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lblborrow, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblreturn, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(borrowandreturn, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jScrollPane2)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(jPanel1Layout.createSequentialGroup()
+                                        .addComponent(monthChooser, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(yearChooser, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addComponent(lblborrow1, javax.swing.GroupLayout.PREFERRED_SIZE, 251, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(0, 0, Short.MAX_VALUE)))))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(65, 65, 65)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(76, 76, 76)
                         .addComponent(lblborrow)
+                        .addGap(18, 18, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(lblborrow1)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(borrowdate, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(yearChooser, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(monthChooser, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addComponent(lblreturn)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(returndate, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(92, 92, 92)
-                .addComponent(jLabel5)
+                        .addGap(18, 18, 18)
+                        .addComponent(borrowandreturn, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 27, Short.MAX_VALUE)
+                .addComponent(clientdetails)
                 .addGap(18, 18, 18)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(fname, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(fnamelbl))
-                .addGap(26, 26, 26)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(lnamelbl)
-                    .addComponent(lname, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(paymentlbl)
-                    .addComponent(lname1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(22, 22, 22)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(contactlbl)
-                    .addComponent(contact, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(totalfeelbl))
-                .addGap(23, 23, 23)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(emaillbl)
-                    .addComponent(email, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(39, 39, 39)
-                .addComponent(proceedbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(55, Short.MAX_VALUE))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(fname, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(fnamelbl))
+                                .addGap(26, 26, 26)
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(lnamelbl)
+                                    .addComponent(lname, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(paymentlbl)
+                                    .addComponent(payment, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(22, 22, 22)
+                                .addComponent(lbltotalfee)))
+                        .addGap(22, 22, 22)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(contactlbl)
+                            .addComponent(contact, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(23, 23, 23)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(emaillbl)
+                            .addComponent(email, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                        .addComponent(proceedbtn, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(20, 20, 20)))
+                .addGap(75, 75, 75))
         );
 
         add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 0, 640, 560));
     }// </editor-fold>//GEN-END:initComponents
 
-    private void borrowdateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_borrowdateActionPerformed
-        // Display JCalendar for Borrow Date
-        JCalendar calendar = new JCalendar();
-        JOptionPane.showMessageDialog(this, calendar, "Choose Borrow Date", JOptionPane.PLAIN_MESSAGE);
+    private void borrowandreturnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_borrowandreturnActionPerformed
+        Calendar calendar = new GregorianCalendar();
+        SpinnerModel spinnerModel = new SpinnerDateModel(calendar.getTime(), null, null, Calendar.HOUR_OF_DAY);
+        JSpinner spinner = new JSpinner(spinnerModel);
+        JSpinner.DateEditor editor = new JSpinner.DateEditor(spinner, "MMM dd yyyy hh:mm a");
+        spinner.setEditor(editor);
 
-        // Get selected date
-        Date selectedDate = calendar.getDate();
+        int option1 = JOptionPane.showOptionDialog(this, spinner, "Choose Borrow Date and Time", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null);
 
-        // Format the date to "Thu May 16 2024" format
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd yyyy");
-        String formattedDate = dateFormat.format(selectedDate);
-        
-        // Update label with formatted date
-        lblborrow.setText("Borrow Date: " + formattedDate);
-    }//GEN-LAST:event_borrowdateActionPerformed
+        if (option1 == JOptionPane.OK_OPTION) {
+            borrowDate = (Date) spinner.getValue();
+            SimpleDateFormat dateFormat1 = new SimpleDateFormat("MMM dd yyyy hh:mm a");
+            String formattedDate1 = dateFormat1.format(borrowDate);
 
-    private void returndateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_returndateActionPerformed
-        JCalendar calendar = new JCalendar();
-        JOptionPane.showMessageDialog(this, calendar, "Choose Return Date", JOptionPane.PLAIN_MESSAGE);
+            Calendar borrowCalendar = Calendar.getInstance();
+            borrowCalendar.setTime(borrowDate);
+            borrowCalendar.add(Calendar.MINUTE, -30);
+            borrowDate = borrowCalendar.getTime();
 
-        Date selectedDate = calendar.getDate();
+            if (borrowDate.before(calendar.getTime())) {
+                JOptionPane.showMessageDialog(this, "Borrow date should be later than current time. At least an hour.", "Invalid Borrow Date", JOptionPane.ERROR_MESSAGE);
+            } else {
+                lblborrow.setText("Borrow Date: " + formattedDate1);
 
-        if (borrowDate != null && !selectedDate.before(borrowDate) && !selectedDate.equals(borrowDate)) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd yyyy");
-            String formattedDate = dateFormat.format(selectedDate);
+                Calendar returnCalendar = Calendar.getInstance();
+                returnCalendar.setTime(borrowDate);
+                returnCalendar.add(Calendar.DAY_OF_YEAR, 1);
 
-            lblreturn.setText("Return Date: " + formattedDate);
-        } else {
-            JOptionPane.showMessageDialog(this, "Return date must be later than borrow date and not the same as borrow date.", "Invalid Return Date", JOptionPane.ERROR_MESSAGE);
-        }
-    }//GEN-LAST:event_returndateActionPerformed
+                SpinnerModel returnSpinnerModel = new SpinnerDateModel(returnCalendar.getTime(), null, null, Calendar.HOUR_OF_DAY);
+                JSpinner returnSpinner = new JSpinner(returnSpinnerModel);
+                JSpinner.DateEditor returnEditor = new JSpinner.DateEditor(returnSpinner, "MMM dd yyyy hh:mm a");
+                returnSpinner.setEditor(returnEditor);
 
-    private void proceedbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_proceedbtnActionPerformed
-         String fnamestr = fnamelbl.getText();
-         String lnamestr = lnamelbl.getText();
-         String contactstr = contactlbl.getName();
-         String emailstr = emaillbl.getText();
-         
-         if (fnamestr.isEmpty() || lnamestr.isEmpty() || contactstr.isEmpty() || emailstr.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "Please fill out all required fields.", "Incomplete Information", JOptionPane.WARNING_MESSAGE);
-        } else if (borrowDate == null || returnDate == null) {
-            JOptionPane.showMessageDialog(this, "Please select both Borrow and Return dates.", "Date Selection Required", JOptionPane.WARNING_MESSAGE);
-        } else {
-            try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
-                int loggedInEmployeeId = Session.getLoggedInEmployeeId();
-                String checkQuery = "SELECT INTO clients WHERE contact = ? AND email = ?";
-                
-                if () {
-                    
-                } else {
-                    // Client id is auto incremented and also a primary key
-                    String insertQueryClient = "INSERT INTO clients (fname, lname, contact, email) VALUES (?, ?, ?, ?)";
-                    PreparedStatement ps = con.prepareStatement(insertQueryClient);
-                    ps.setString(1, fnamestr);
-                    ps.setString(2, lnamestr);
-                    ps.setString(3, contactstr);
-                    ps.setString(4, emailstr);
-                    
-                    if () {
-                        
+                int option2 = JOptionPane.showOptionDialog(this, returnSpinner, "Choose Return Date and Time", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null);
+
+                if (option2 == JOptionPane.OK_OPTION) {
+                    returnDate = (Date) returnSpinner.getValue();
+                    SimpleDateFormat dateFormat2 = new SimpleDateFormat("MMM dd yyyy hh:mm a");
+                    String formattedDate2 = dateFormat2.format(returnDate);
+
+                    if (returnDate.before(borrowDate) || returnDate.equals(borrowDate)) {
+                        JOptionPane.showMessageDialog(this, "Return date should be later than borrow date and not the same.", "Invalid Return Date", JOptionPane.ERROR_MESSAGE);
                     } else {
-                        String insertQueryTransactions = "INSERT INTO transactions (carid, clientid, employeeid, borrow_date, return_date, total_fee, pay, transac_date ) VALUES (?, ?, ?, ?)";
+                        // Check for existing bookings
+                        if (checkExistingBookings(borrowDate, returnDate)) {
+                            JOptionPane.showMessageDialog(this, "Chosen date is already booked.", "Booking Conflict", JOptionPane.ERROR_MESSAGE);
+                        } else {
+                            lblreturn.setText("Return Date: " + formattedDate2);
+                            updateTotalFee();
+                        }
                     }
                 }
-                
-            } catch (Exception e) {
-                
             }
+        }
+    }//GEN-LAST:event_borrowandreturnActionPerformed
+  
+    private boolean checkExistingBookings(Date borrowDate, Date returnDate) {
+        try (Connection connection = DriverManager.getConnection(url, sqluser, sqlpass)) {
+            String query = "SELECT COUNT(*) FROM transactions WHERE car_id = ? AND ((borrow_date <= ? AND return_date >= ?) OR (borrow_date <= ? AND return_date >= ?))";
+            
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setInt(1, carID);
+            statement.setTimestamp(2, new Timestamp(borrowDate.getTime()));
+            statement.setTimestamp(3, new Timestamp(returnDate.getTime()));
+            statement.setTimestamp(4, new Timestamp(borrowDate.getTime()));
+            statement.setTimestamp(5, new Timestamp(returnDate.getTime()));
+
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                int count = resultSet.getInt(1);
+                return count > 0;
+            }
+        } catch (SQLException e) {
+        }
+        return false;
+    }
+    
+    private void updateTotalFee() {
+        if (borrowDate != null && returnDate != null) {
+            long durationMillis = returnDate.getTime() - borrowDate.getTime();
+            long durationDays = TimeUnit.MILLISECONDS.toDays(durationMillis);
+
+            totalFee = pricing.multiply(BigDecimal.valueOf(durationDays));
+            lbltotalfee.setText("Total Fee: " + totalFee.toString());
+        }
+    }
+    
+    private void proceedbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_proceedbtnActionPerformed
+        String fnamestr = fname.getText();
+        String lnamestr = lname.getText();
+        String contactstr = contact.getText();
+        String emailstr = email.getText();
+        String paymentText = payment.getText();
+
+        try {
+            int payInt = Integer.parseInt(paymentText);
+            BigDecimal payAmount = new BigDecimal(payInt);
+
+            if (fnamestr.isEmpty() || lnamestr.isEmpty() || contactstr.isEmpty() || emailstr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill out all required fields.", "Incomplete Information", JOptionPane.WARNING_MESSAGE);
+            } else if (borrowDate == null || returnDate == null) {
+                JOptionPane.showMessageDialog(this, "Please select both Borrow and Return dates.", "Date Selection Required", JOptionPane.WARNING_MESSAGE);
+            } else if (payAmount.compareTo(totalFee) < 0) {
+                JOptionPane.showMessageDialog(this, "Payment amount is less than the total fee.", "Insufficient Payment", JOptionPane.ERROR_MESSAGE);
+            } else {
+                int option = JOptionPane.showOptionDialog(this,
+                    "Transaction Details:\n" +
+                    "First Name: " + fnamestr + "\n" +
+                    "Last Name: " + lnamestr + "\n" +
+                    "Contact: " + contactstr + "\n" +
+                    "Email: " + emailstr + "\n" +
+                    "Payment: " + paymentText + "\n" +
+                    "\nProceed with the transaction?",
+                    "Transaction Confirmation",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    new String[]{"Proceed", "Cancel"},
+                    "Proceed");
+
+                if (option == JOptionPane.NO_OPTION) {
+                    return;
+                }
+
+                String receiptContent = "RECEIPT SLIP\n" +
+                    "-----------------------------------------------\n" +
+                    "Client Name: " + fnamestr + " " + lnamestr + "\n" +
+                    "Employee: " + Session.getLoggedInEmployeeId() + "\n" +
+                    "Date: " + new java.util.Date() + "\n" +
+                    "Items:\n" +
+                    "- Car Rental: " + carID + "\n" +
+                    "- Total: " + totalFee + "\n" +
+                    "Payment Details:\n" +
+                    "- Amount Paid: " + paymentText + "\n" +
+                    "-----------------------------------------------\n" +
+                    "Quickie Car Rental\n" +
+                    "Thank you for your business!";
+
+                textarea1.setText(receiptContent);
+                receipt.setLocationRelativeTo(null);
+                receipt.setVisible(true);
+                
+                printreceipt.addActionListener((ActionEvent e) -> {
+                    int clientId;
+                    try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
+                        con.setAutoCommit(false);
+                        
+                        System.out.println(1);
+                        int loggedInEmployeeId = Session.getLoggedInEmployeeId();
+                        String checkQuery = "SELECT id FROM clients WHERE contact = ? AND email = ?";
+                        try (PreparedStatement psCheck = con.prepareStatement(checkQuery)) {
+                            psCheck.setString(1, contactstr);
+                            psCheck.setString(2, emailstr);
+                            try (ResultSet rs = psCheck.executeQuery()) {
+                                if (rs.next()) {
+                                    clientId = rs.getInt("id");
+                                } else {
+                                    String insertQueryClient = "INSERT INTO clients (fname, lname, contact, email) VALUES (?, ?, ?, ?)";
+                                    try (PreparedStatement psInsertClient = con.prepareStatement(insertQueryClient, Statement.RETURN_GENERATED_KEYS)) {
+                                        psInsertClient.setString(1, fnamestr);
+                                        psInsertClient.setString(2, lnamestr);
+                                        psInsertClient.setString(3, contactstr);
+                                        psInsertClient.setString(4, emailstr);
+                                        int rowsAffected = psInsertClient.executeUpdate();
+                                        if (rowsAffected == 0) {
+                                            throw new SQLException("Inserting client failed, no rows affected.");
+                                        }
+                                        try (ResultSet generatedKeys = psInsertClient.getGeneratedKeys()) {
+                                            if (generatedKeys.next()) {
+                                                clientId = generatedKeys.getInt(1);
+                                            } else {
+                                                throw new SQLException("Failed to obtain client ID.");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        String checkActiveBookingQuery = "SELECT * FROM transactions WHERE client_id = ? AND return_date > NOW()";
+                        try (PreparedStatement psCheckActiveBooking = con.prepareStatement(checkActiveBookingQuery)) {
+                            psCheckActiveBooking.setInt(1, clientId);
+                            try (ResultSet rs = psCheckActiveBooking.executeQuery()) {
+                                if (rs.next()) {
+                                    JOptionPane.showMessageDialog(this, "Client already has an active booking.", "Booking Error", JOptionPane.ERROR_MESSAGE);
+                                    receipt.setVisible(false);
+                                    return;
+                                }
+                            }
+                        }
+
+                        System.out.println(3);
+                        String insertTransaction = "INSERT INTO transactions (car_id, client_id, employee_id, borrow_date, return_date, total_fee, pay, transact_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                        PreparedStatement psInsertTransaction = con.prepareStatement(insertTransaction, Statement.RETURN_GENERATED_KEYS);
+                        psInsertTransaction.setInt(1, carID);
+                        psInsertTransaction.setInt(2, clientId);
+                        psInsertTransaction.setInt(3, loggedInEmployeeId);
+                        psInsertTransaction.setTimestamp(4, new java.sql.Timestamp(borrowDate.getTime()));
+                        psInsertTransaction.setTimestamp(5, new java.sql.Timestamp(returnDate.getTime()));
+                        psInsertTransaction.setBigDecimal(6, totalFee);
+                        psInsertTransaction.setBigDecimal(7, payAmount);
+                        psInsertTransaction.setTimestamp(8, new java.sql.Timestamp(System.currentTimeMillis()));
+
+                        psInsertTransaction.executeUpdate();
+
+                        ResultSet generatedKeys = psInsertTransaction.getGeneratedKeys();
+                        int transactId = -1;
+                        if (generatedKeys.next()) {
+                            transactId = generatedKeys.getInt(1); 
+                        }
+
+                        con.commit();
+
+                        String fileName = "transaction_details[Transaction ID:"+transactId+"].txt";
+                        String filePath = System.getProperty("user.home") + "/Downloads/" + fileName;
+                        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+                            writer.println("Transaction Details: " + transactId); // Include the transaction ID in the file
+                            writer.println("Transaction ID: " + transactId);
+                            writer.println("Employee ID: " + loggedInEmployeeId);
+                            writer.println("Client ID: " + clientId);
+                            writer.println("First Name: " + fnamestr);
+                            writer.println("Last Name: " + lnamestr);
+                            writer.println("Contact: " + contactstr);
+                            writer.println("Email: " + emailstr);
+                            writer.println("Payment: " + paymentText);
+                        } catch (IOException ex) {
+                            JOptionPane.showMessageDialog(this, "Failed to save transaction details to file.", "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+
+                        JOptionPane.showMessageDialog(null, "Transaction Completed", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (SQLException es) {
+                        JOptionPane.showMessageDialog(null, "Transaction failed. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                    receipt.setVisible(false);
+                    
+                    Dashboard dashboard = (Dashboard) SwingUtilities.getWindowAncestor(this);
+                    if (dashboard != null) {
+                        dashboard.getTabbedPane().removeAll();
+
+                        RentCar rent = new RentCar();
+                        dashboard.getTabbedPane().add("", rent);
+                        dashboard.getTabbedPane().setSelectedComponent(rent);
+                    }
+                });
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid number for payment.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_proceedbtnActionPerformed
 
+    private void monthChooserPropertyChange(java.beans.PropertyChangeEvent evt) {//GEN-FIRST:event_monthChooserPropertyChange
+        fetchData(carID);
+    }//GEN-LAST:event_monthChooserPropertyChange
+
+    private void yearChooserPropertyChange(java.beans.PropertyChangeEvent evt) {//GEN-FIRST:event_yearChooserPropertyChange
+        fetchData(carID);
+    }//GEN-LAST:event_yearChooserPropertyChange
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton borrowdate;
+    private javax.swing.JButton borrowandreturn;
+    private javax.swing.JLabel clientdetails;
     private javax.swing.JTextField contact;
     private javax.swing.JLabel contactlbl;
     private javax.swing.JTextField email;
@@ -421,23 +701,30 @@ public class TransactionPanel extends javax.swing.JPanel {
     private javax.swing.JLabel fnamelbl;
     private javax.swing.JLabel imageLabel;
     private javax.swing.JPanel imagepanel;
-    private javax.swing.JLabel jLabel5;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane4;
     private keeptoo.KGradientPanel kGradientPanel1;
     private javax.swing.JLabel lblborrow;
+    private javax.swing.JLabel lblborrow1;
     private javax.swing.JLabel lblbrand;
     private javax.swing.JLabel lblcolor;
     private javax.swing.JLabel lblfueltype;
     private javax.swing.JLabel lblmodel;
     private javax.swing.JLabel lblprice;
     private javax.swing.JLabel lblreturn;
+    private javax.swing.JLabel lbltotalfee;
     private javax.swing.JLabel lblyearmodel;
     private javax.swing.JTextField lname;
-    private javax.swing.JTextField lname1;
     private javax.swing.JLabel lnamelbl;
+    private com.toedter.calendar.JMonthChooser monthChooser;
+    private javax.swing.JTextField payment;
     private javax.swing.JLabel paymentlbl;
+    private javax.swing.JButton printreceipt;
     private javax.swing.JToggleButton proceedbtn;
-    private javax.swing.JButton returndate;
-    private javax.swing.JLabel totalfeelbl;
+    private javax.swing.JFrame receipt;
+    private javax.swing.JTextArea textArea;
+    private javax.swing.JTextArea textarea1;
+    private com.toedter.calendar.JYearChooser yearChooser;
     // End of variables declaration//GEN-END:variables
 }

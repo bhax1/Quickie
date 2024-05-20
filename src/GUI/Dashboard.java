@@ -182,6 +182,7 @@ public class Dashboard extends javax.swing.JFrame {
 
     private void dashboardbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dashboardbtnActionPerformed
         DashboardPanel m = new DashboardPanel();
+        m.count();
         tabbedPane.removeAll();
         tabbedPane.add(m);
     }//GEN-LAST:event_dashboardbtnActionPerformed
@@ -194,13 +195,16 @@ public class Dashboard extends javax.swing.JFrame {
     }//GEN-LAST:event_rentcarbtnActionPerformed
 
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
-        ReturnCar m = new ReturnCar();
+        DashboardPanel m = new DashboardPanel();
+        m.count();
         tabbedPane.removeAll();
         tabbedPane.add(m);
     }//GEN-LAST:event_formWindowOpened
 
     private void returncarbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_returncarbtnActionPerformed
-        
+        ReturnCar m = new ReturnCar();
+        tabbedPane.removeAll();
+        tabbedPane.add(m);
     }//GEN-LAST:event_returncarbtnActionPerformed
 
     private void logoutbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_logoutbtnActionPerformed
