@@ -4,6 +4,7 @@ import GUI.Dashboard;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.Image;
@@ -12,8 +13,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -113,95 +117,127 @@ public class RentCar extends javax.swing.JPanel {
     private void populateCarImages() {
         contentPanel.removeAll();
 
-        int columns = 3;
-        JPanel gridPanel = new JPanel(new GridLayout(0, columns, 30, 30));
-        gridPanel.setBackground(Color.white);
+        JLabel loadingLabel = new JLabel("Loading, please wait...", JLabel.CENTER);
+        loadingLabel.setFont(new Font("Arial", Font.PLAIN, 20));
+        contentPanel.setLayout(new BorderLayout());
+        contentPanel.add(loadingLabel, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
 
-        int targetWidth = 200;
-        int targetHeight = 150;
-        Dimension panelSize = new Dimension(250, 250);
+        SwingWorker<List<JPanel>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<JPanel> doInBackground() throws Exception {
+                List<JPanel> carPanels = new ArrayList<>();
+                int columns = 3;
+                JPanel gridPanel = new JPanel(new GridLayout(0, columns, 30, 30));
+                gridPanel.setBackground(Color.white);
 
-        try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
-            String query;
-            String selectedBrand = (String) brandComboBox.getSelectedItem();
-            String selectedModel = (String) modelComboBox.getSelectedItem();
-            String selectedColor = (String) colorcb.getSelectedItem(); // Get selected color
+                int targetWidth = 200;
+                int targetHeight = 150;
+                Dimension panelSize = new Dimension(250, 250);
 
-            if (selectedBrand.equals("All")) {
-                query = "SELECT id, brand, model, yearmodel, fueltype, color, price, picture FROM cars";
-            } else {
-                query = "SELECT id, brand, model, yearmodel, fueltype, color, price, picture FROM cars WHERE brand = ?";
-            }
+                try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
+                    String query;
+                    String selectedBrand = (String) brandComboBox.getSelectedItem();
+                    String selectedModel = (String) modelComboBox.getSelectedItem();
+                    String selectedColor = (String) colorcb.getSelectedItem(); // Get selected color
 
-            try (PreparedStatement statement = con.prepareStatement(query)) {
-                if (!selectedBrand.equals("All")) {
-                    statement.setString(1, selectedBrand);
-                }
+                    if (selectedBrand.equals("All")) {
+                        query = "SELECT id, brand, model, yearmodel, fueltype, color, price, picture FROM cars";
+                    } else {
+                        query = "SELECT id, brand, model, yearmodel, fueltype, color, price, picture FROM cars WHERE brand = ?";
+                    }
 
-                try (ResultSet rs = statement.executeQuery()) {
-                    while (rs.next()) {
-                        int carid = rs.getInt("id");
-                        String brand = rs.getString("brand");
-                        String model = rs.getString("model");
-                        String color = rs.getString("color");
+                    try (PreparedStatement statement = con.prepareStatement(query)) {
+                        if (!selectedBrand.equals("All")) {
+                            statement.setString(1, selectedBrand);
+                        }
 
-                        if ((selectedBrand.equals("All") || model.equals(selectedModel)) 
-                                && (selectedColor.equals("All") || color.equals(selectedColor))) {
-                            int yearmodel = rs.getInt("yearmodel");
-                            String fueltype = rs.getString("fueltype");
-                            BigDecimal price = rs.getBigDecimal("price");
-                            byte[] imageData = rs.getBytes("picture");
+                        try (ResultSet rs = statement.executeQuery()) {
+                            while (rs.next()) {
+                                int carid = rs.getInt("id");
+                                String brand = rs.getString("brand");
+                                String model = rs.getString("model");
+                                String color = rs.getString("color");
 
-                            BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData));
-                            if (img != null) {
-                                BufferedImage resizedImg = resizeImage(img, targetWidth, targetHeight);
-                                JLabel imageLabel = new JLabel(new ImageIcon(resizedImg));
-                                JButton rentButton = new JButton("Rent a " + brand + " " + model);
+                                if ((selectedBrand.equals("All") || model.equals(selectedModel))
+                                        && (selectedColor.equals("All") || color.equals(selectedColor))) {
+                                    int yearmodel = rs.getInt("yearmodel");
+                                    String fueltype = rs.getString("fueltype");
+                                    BigDecimal price = rs.getBigDecimal("price");
+                                    byte[] imageData = rs.getBytes("picture");
 
-                                rentButton.addActionListener(e -> {
-                                    try {
-                                        rentCar(carid, brand, model, yearmodel, fueltype, color, price, imageData);
-                                    } catch (IOException ex) {
-                                        Logger.getLogger(RentCar.class.getName()).log(Level.SEVERE, null, ex);
+                                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData));
+                                    if (img != null) {
+                                        BufferedImage resizedImg = resizeImage(img, targetWidth, targetHeight);
+                                        JLabel imageLabel = new JLabel(new ImageIcon(resizedImg));
+                                        JButton rentButton = new JButton("Rent a " + brand + " " + model);
+
+                                        rentButton.addActionListener(e -> {
+                                            try {
+                                                rentCar(carid, brand, model, yearmodel, fueltype, color, price, imageData);
+                                            } catch (IOException ex) {
+                                                Logger.getLogger(RentCar.class.getName()).log(Level.SEVERE, null, ex);
+                                            }
+                                        });
+
+                                        JPanel carDetailsPanel = new JPanel(new GridLayout(0, 1));
+                                        carDetailsPanel.setBackground(Color.white); // Set background color for details panel
+                                        carDetailsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Add padding
+                                        carDetailsPanel.add(new JLabel("<html><b>Brand:</b> " + brand + "</html>"));
+                                        carDetailsPanel.add(new JLabel("<html><b>Model:</b> " + model + "</html>"));
+                                        carDetailsPanel.add(new JLabel("<html><b>Year:</b> " + yearmodel + "</html>"));
+                                        carDetailsPanel.add(new JLabel("<html><b>Fuel Type:</b> " + fueltype + "</html>"));
+                                        carDetailsPanel.add(new JLabel("<html><b>Color:</b> " + color + "</html>"));
+                                        carDetailsPanel.add(new JLabel("<html><b>Price:</b> ₱" + price + "</html>"));
+
+                                        JPanel carPanel = new JPanel(new BorderLayout());
+                                        carPanel.setPreferredSize(panelSize);
+                                        carPanel.setBackground(Color.white);
+                                        carPanel.setBorder(BorderFactory.createLineBorder(Color.black));
+                                        carPanel.add(imageLabel, BorderLayout.CENTER);
+                                        carPanel.add(carDetailsPanel, BorderLayout.NORTH);
+                                        carPanel.add(rentButton, BorderLayout.SOUTH);
+
+                                        carPanels.add(carPanel);
                                     }
-                                });
-
-                                JPanel carDetailsPanel = new JPanel(new GridLayout(0, 1));
-                                carDetailsPanel.setBackground(Color.white); // Set background color for details panel
-                                carDetailsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Add padding
-                                carDetailsPanel.add(new JLabel("<html><b>Brand:</b> " + brand + "</html>"));
-                                carDetailsPanel.add(new JLabel("<html><b>Model:</b> " + model + "</html>"));
-                                carDetailsPanel.add(new JLabel("<html><b>Year:</b> " + yearmodel + "</html>"));
-                                carDetailsPanel.add(new JLabel("<html><b>Fuel Type:</b> " + fueltype + "</html>"));
-                                carDetailsPanel.add(new JLabel("<html><b>Color:</b> " + color + "</html>"));
-                                carDetailsPanel.add(new JLabel("<html><b>Price:</b> ₱" + price + "</html>"));
-
-                                JPanel carPanel = new JPanel(new BorderLayout());
-                                carPanel.setPreferredSize(panelSize);
-                                carPanel.setBackground(Color.lightGray);
-                                carPanel.setBorder(BorderFactory.createLineBorder(Color.black));
-                                carPanel.add(imageLabel, BorderLayout.CENTER);
-                                carPanel.add(carDetailsPanel, BorderLayout.NORTH);
-                                carPanel.add(rentButton, BorderLayout.SOUTH);
-
-                                gridPanel.add(carPanel);
+                                }
                             }
                         }
                     }
+                } catch (SQLException | IOException e) {
+                    JOptionPane.showMessageDialog(contentPanel, "Failed to load car images: " + e.getMessage());
+                }
+
+                return carPanels;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<JPanel> carPanels = get();
+                    JPanel gridPanel = new JPanel(new GridLayout(0, 3, 30, 30));
+                    gridPanel.setBackground(Color.white);
+                    for (JPanel panel : carPanels) {
+                        gridPanel.add(panel);
+                    }
+
+                    JScrollPane scrollPane = new JScrollPane(gridPanel);
+                    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+                    scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+                    contentPanel.removeAll();
+                    contentPanel.setLayout(new BorderLayout());
+                    contentPanel.add(scrollPane, BorderLayout.CENTER);
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                } catch (InterruptedException | ExecutionException e) {
+                    JOptionPane.showMessageDialog(contentPanel, "Failed to load car images: " + e.getMessage());
                 }
             }
-        } catch (SQLException | IOException e) {
-            JOptionPane.showMessageDialog(this, "Failed to load car images: " + e.getMessage());
-        }
+        };
 
-        JScrollPane scrollPane = new JScrollPane(gridPanel);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-
-        contentPanel.setLayout(new BorderLayout()); // Set layout for contentPanel
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        worker.execute();
     }
 
     private void rentCar(int carid, String brand, String model, int year, String fuelType, String color, BigDecimal price, byte[] image) throws IOException {

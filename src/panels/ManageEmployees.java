@@ -7,7 +7,6 @@ import java.io.*;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.sql.*;
-import java.util.logging.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
@@ -23,17 +22,6 @@ public class ManageEmployees extends javax.swing.JPanel {
         initComponents();
     }
 
-    private static boolean isImageSizeValid(File imageFile) {
-        try {
-            BufferedImage img = ImageIO.read(imageFile);
-            int width = img.getWidth();
-            int height = img.getHeight();
-            return (width <= 600 && height <= 600);
-        } catch (IOException e) {
-        }
-        return false;
-    }
-    
     private BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         int width = originalImage.getWidth();
         int height = originalImage.getHeight();
@@ -69,25 +57,23 @@ public class ManageEmployees extends javax.swing.JPanel {
         try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
             String query = "SELECT * FROM employees";
 
-            PreparedStatement statement = con.prepareStatement(query);
-            ResultSet rs = statement.executeQuery();
+            try (PreparedStatement statement = con.prepareStatement(query);
+                 ResultSet rs = statement.executeQuery()) {
 
-            while (rs.next()) {
-                int id = rs.getInt("id");
-                String firstname = rs.getString("fname");
-                String lastname = rs.getString("lname");
-                String contactno = rs.getString("contact");
-                String emails = rs.getString("email");
-                String addresss = rs.getString("address");
-                byte[] picture = rs.getBytes("picture");
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    String firstname = rs.getString("fname");
+                    String lastname = rs.getString("lname");
+                    String contactno = rs.getString("contact");
+                    String emails = rs.getString("email");
+                    String addresss = rs.getString("address");
+                    byte[] picture = rs.getBytes("picture");
 
-                model.addRow(new Object[]{id, firstname, lastname, contactno, emails, addresss, picture});
+                    model.addRow(new Object[]{id, firstname, lastname, contactno, emails, addresss, picture});
+                }
             }
-
-            rs.close();
-            statement.close();
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "An error has occurred.");
+            JOptionPane.showMessageDialog(this, "Error retrieving employee data: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -414,66 +400,78 @@ public class ManageEmployees extends javax.swing.JPanel {
             if (isImageSizeValid(selectedFile)) {
                 try {
                     BufferedImage img = ImageIO.read(selectedFile);
-                    ImageIcon imageIcon = new ImageIcon(resizeImage(img, imageLabel.getWidth(), imageLabel.getHeight()));
-                    imageLabel.setIcon(imageIcon);
-
-                    JOptionPane.showMessageDialog(this, "Image has been selected.");
+                    if (img != null) {
+                        ImageIcon imageIcon = new ImageIcon(resizeImage(img, imageLabel.getWidth(), imageLabel.getHeight()));
+                        imageLabel.setIcon(imageIcon);
+                        JOptionPane.showMessageDialog(this, "Image has been selected.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error loading image.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
                 } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(this, "Error loading image.");
+                    JOptionPane.showMessageDialog(this, "Error loading image: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Image size exceeds 600x600 pixels. Please select a smaller image.");
+                JOptionPane.showMessageDialog(this, "Image size exceeds 600x600 pixels. Please select a smaller image.", "Image Size Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }//GEN-LAST:event_selectimagebtnActionPerformed
 
+    private boolean isImageSizeValid(File file) {
+        try {
+            BufferedImage img = ImageIO.read(file);
+            return img != null && img.getWidth() <= 600 && img.getHeight() <= 600;
+        } catch (IOException ex) {
+            return false;
+        }
+    }
+    
     private void addEmployeeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addEmployeeActionPerformed
-        String fnameStr = fname.getText();
-        String lnameStr = lname.getText();
-        String contactStr = contact.getText();
-        String emailStr = email.getText();
-        String addressStr = address.getText();
-        
-        if (fnameStr.isBlank() || lnameStr.isBlank() || contactStr.isBlank() || emailStr.isBlank() || addressStr.isBlank()) {
-            JOptionPane.showMessageDialog(this, "Please enter all fields.");
+        String fnameStr = fname.getText().trim();
+        String lnameStr = lname.getText().trim();
+        String contactStr = contact.getText().trim();
+        String emailStr = email.getText().trim();
+        String addressStr = address.getText().trim();
+
+        if (fnameStr.isEmpty() || lnameStr.isEmpty() || contactStr.isEmpty() || emailStr.isEmpty() || addressStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter all fields.", "Missing Information", JOptionPane.ERROR_MESSAGE);
         } else if (selectedFile == null) {
-            JOptionPane.showMessageDialog(this, "Please select an image first before proceeding.");
+            JOptionPane.showMessageDialog(this, "Please select an image before proceeding.", "Image Missing", JOptionPane.ERROR_MESSAGE);
         } else {
-            try {
-                Connection con = DriverManager.getConnection(url, sqluser, sqlpass);
+            try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
                 String checkEmailQuery = "SELECT id FROM employees WHERE email = ?";
                 try (PreparedStatement checkPs = con.prepareStatement(checkEmailQuery)) {
                     checkPs.setString(1, emailStr);
-                    ResultSet rs = checkPs.executeQuery();
-                    if (rs.next()) {
-                        JOptionPane.showMessageDialog(this, "Email already registered. Please use a different email address.");
-                    } else {
-                        String insertQuery = "INSERT INTO employees (fname, lname, contact, email, address, picture) VALUES (?, ?, ?, ?, ?, ?)";
-                        try (PreparedStatement ps = con.prepareStatement(insertQuery)) {
-                            FileInputStream fis = new FileInputStream(selectedFile);
-                            
-                            ps.setString(1, fnameStr);
-                            ps.setString(2, lnameStr);
-                            ps.setString(3, contactStr);
-                            ps.setString(4, emailStr);
-                            ps.setString(5, addressStr);
-                            ps.setBinaryStream(6, fis);
+                    try (ResultSet rs = checkPs.executeQuery()) {
+                        if (rs.next()) {
+                            JOptionPane.showMessageDialog(this, "Email already registered. Please use a different email address.", "Duplicate Email", JOptionPane.ERROR_MESSAGE);
+                        } else {
+                            String insertQuery = "INSERT INTO employees (fname, lname, contact, email, address, picture) VALUES (?, ?, ?, ?, ?, ?)";
+                            try (PreparedStatement ps = con.prepareStatement(insertQuery)) {
+                                FileInputStream fis = new FileInputStream(selectedFile);
 
-                            int rowsAffected = ps.executeUpdate();
-                            if (rowsAffected > 0) {
-                                JOptionPane.showMessageDialog(this, "Employee added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                                populateTable();
-                                clear();
-                            } else {
-                                JOptionPane.showMessageDialog(this, "Failed to add employee.", "Error", JOptionPane.ERROR_MESSAGE);
+                                ps.setString(1, fnameStr);
+                                ps.setString(2, lnameStr);
+                                ps.setString(3, contactStr);
+                                ps.setString(4, emailStr);
+                                ps.setString(5, addressStr);
+                                ps.setBinaryStream(6, fis);
+
+                                int rowsAffected = ps.executeUpdate();
+                                if (rowsAffected > 0) {
+                                    JOptionPane.showMessageDialog(this, "Employee added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                                    populateTable();
+                                    clear();
+                                } else {
+                                    JOptionPane.showMessageDialog(this, "Failed to add employee.", "Error", JOptionPane.ERROR_MESSAGE);
+                                }
+                            } catch (FileNotFoundException ex) {
+                                JOptionPane.showMessageDialog(this, "Image file not found.", "File Not Found", JOptionPane.ERROR_MESSAGE);
                             }
-                        } catch (FileNotFoundException ex) {
-                            Logger.getLogger(ManageEmployees.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
                 }
             } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Database error occurred: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Database error occurred: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }//GEN-LAST:event_addEmployeeActionPerformed
@@ -482,29 +480,24 @@ public class ManageEmployees extends javax.swing.JPanel {
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         int row = table.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "No row is selected", "Select row", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No row is selected", "Select Row", JOptionPane.ERROR_MESSAGE);
         } else {
             int employeeid = (int) model.getValueAt(row, 0);
-            try {
-                Connection con = DriverManager.getConnection(url, sqluser, sqlpass);
+            try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
                 String query = "DELETE FROM employees WHERE id = ?";
-                PreparedStatement preparedStatement = con.prepareStatement(query);
-                preparedStatement.setInt(1, employeeid);
-                int rowsAffected = preparedStatement.executeUpdate();
-                if (rowsAffected > 0) {
-                    clear();
-                    model.removeRow(row);
-                    populateTable();
-                    JOptionPane.showMessageDialog(this,
-                            "Employee removed successfully.", null,
-                            JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this,
-                            "Failed to remove Employee.", null,
-                            JOptionPane.INFORMATION_MESSAGE);
+                try (PreparedStatement preparedStatement = con.prepareStatement(query)) {
+                    preparedStatement.setInt(1, employeeid);
+                    int rowsAffected = preparedStatement.executeUpdate();
+                    if (rowsAffected > 0) {
+                        clear();
+                        model.removeRow(row);
+                        JOptionPane.showMessageDialog(this, "Employee removed successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Failed to remove Employee.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "An error has occurred.");
+                JOptionPane.showMessageDialog(this, "Database error occurred: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }//GEN-LAST:event_removeEmployeeActionPerformed
@@ -513,18 +506,18 @@ public class ManageEmployees extends javax.swing.JPanel {
         int row = table.getSelectedRow();
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "No row is selected", "Select row", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No row is selected", "Select Row", JOptionPane.ERROR_MESSAGE);
         } else {
-            String fnameStr = fname.getText();
-            String lnameStr = lname.getText();
-            String contactStr = contact.getText();
-            String emailStr = email.getText();
-            String addressStr = address.getText();
+            String fnameStr = fname.getText().trim();
+            String lnameStr = lname.getText().trim();
+            String contactStr = contact.getText().trim();
+            String emailStr = email.getText().trim();
+            String addressStr = address.getText().trim();
             byte[] imageData = (byte[]) model.getValueAt(row, 6);
             String id = model.getValueAt(row, 0).toString();
 
-            if (fnameStr.isBlank() || lnameStr.isBlank() || contactStr.isBlank() || emailStr.isBlank() || addressStr.isBlank()) {
-            JOptionPane.showMessageDialog(this, "Please enter all fields.");
+            if (fnameStr.isEmpty() || lnameStr.isEmpty() || contactStr.isEmpty() || emailStr.isEmpty() || addressStr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter all fields.", "Missing Information", JOptionPane.ERROR_MESSAGE);
             } else {
                 try {
                     int employeeid = Integer.parseInt(id);
@@ -532,13 +525,12 @@ public class ManageEmployees extends javax.swing.JPanel {
                     try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
                         String query = "UPDATE employees SET fname = ?, lname = ?, contact = ?, email = ?, address = ?, picture = ? WHERE id = ?";
                         try (PreparedStatement statement = con.prepareStatement(query)) {
-                            
                             statement.setString(1, fnameStr);
                             statement.setString(2, lnameStr);
                             statement.setString(3, contactStr);
                             statement.setString(4, emailStr);
                             statement.setString(5, addressStr);
-                            
+
                             if (selectedFile != null) {
                                 try (FileInputStream fis = new FileInputStream(selectedFile)) {
                                     statement.setBinaryStream(6, fis);
@@ -548,23 +540,23 @@ public class ManageEmployees extends javax.swing.JPanel {
                                     statement.setBinaryStream(6, bais, imageData.length);
                                 }
                             }
-                            
+
                             statement.setInt(7, employeeid);
-                            
+
                             int rowsUpdated = statement.executeUpdate();
                             if (rowsUpdated > 0) {
                                 populateTable();
                                 clear();
                                 JOptionPane.showMessageDialog(this, "Employee updated successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
                             } else {
-                                JOptionPane.showMessageDialog(this, "Failed to update employee.", "Error", JOptionPane.INFORMATION_MESSAGE);
+                                JOptionPane.showMessageDialog(this, "Failed to update employee.", "Error", JOptionPane.ERROR_MESSAGE);
                             }
                         }
                     }
                 } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(this, "An error has occurred in database.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Database error occurred: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
                 } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(this, "Image not found", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Error loading image: " + ex.getMessage(), "Image Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
@@ -579,13 +571,17 @@ public class ManageEmployees extends javax.swing.JPanel {
             contact.setText(model.getValueAt(row, 3).toString());
             email.setText(model.getValueAt(row, 4).toString());
             address.setText(model.getValueAt(row, 5).toString());
-            
+
             byte[] imageData = (byte[]) model.getValueAt(row, 6);
-            BufferedImage originalImage = getImageFromByteArray(imageData);
-            ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, imageLabel.getWidth(), imageLabel.getHeight()));
-            imageLabel.setIcon(imageIcon);
+            if (imageData != null && imageData.length > 0) {
+                BufferedImage originalImage = getImageFromByteArray(imageData);
+                ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, imageLabel.getWidth(), imageLabel.getHeight()));
+                imageLabel.setIcon(imageIcon);
+            } else {
+                imageLabel.setIcon(null);
+            }
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Image not found", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error loading image: " + ex.getMessage(), "Image Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_tableMouseClicked
 
@@ -599,9 +595,9 @@ public class ManageEmployees extends javax.swing.JPanel {
     }//GEN-LAST:event_clearbtnActionPerformed
 
     private void searchbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_searchbtnActionPerformed
-        String searchIDText = searchID.getText();
+        String searchIDText = searchID.getText().trim();
         try {
-            int searchID = Integer.parseInt(searchIDText);
+            int searchIDs = Integer.parseInt(searchIDText);
             DefaultTableModel model = (DefaultTableModel) table.getModel();
 
             int rowCount = model.getRowCount();
@@ -609,7 +605,7 @@ public class ManageEmployees extends javax.swing.JPanel {
             for (int i = 0; i < rowCount; i++) {
                 int id = (int) model.getValueAt(i, 0);
 
-                if (id == searchID) {
+                if (id == searchIDs) {
                     table.setRowSelectionInterval(i, i);
                     fname.setText(model.getValueAt(i, 1).toString());
                     lname.setText(model.getValueAt(i, 2).toString());
@@ -618,9 +614,13 @@ public class ManageEmployees extends javax.swing.JPanel {
                     address.setText(model.getValueAt(i, 5).toString());
 
                     byte[] imageData = (byte[]) model.getValueAt(i, 6);
-                    BufferedImage originalImage = getImageFromByteArray(imageData);
-                    ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, imageLabel.getWidth(), imageLabel.getHeight()));
-                    imageLabel.setIcon(imageIcon);
+                    if (imageData != null && imageData.length > 0) {
+                        BufferedImage originalImage = getImageFromByteArray(imageData);
+                        ImageIcon imageIcon = new ImageIcon(resizeImage(originalImage, imageLabel.getWidth(), imageLabel.getHeight()));
+                        imageLabel.setIcon(imageIcon);
+                    } else {
+                        imageLabel.setIcon(null);
+                    }
 
                     found = true;
                     break;
@@ -630,6 +630,8 @@ public class ManageEmployees extends javax.swing.JPanel {
             if (!found) {
                 JOptionPane.showMessageDialog(this, "ID not found in the table.", "Not Found", JOptionPane.WARNING_MESSAGE);
                 clear();
+            } else {
+                JOptionPane.showMessageDialog(this, "Employee found.", "Success", JOptionPane.INFORMATION_MESSAGE);
             }
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Please enter a valid integer ID.", "Invalid Input", JOptionPane.ERROR_MESSAGE);

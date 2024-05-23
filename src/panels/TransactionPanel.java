@@ -7,9 +7,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.FileWriter;
+import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -17,6 +16,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 public class TransactionPanel extends javax.swing.JPanel {
@@ -157,7 +158,7 @@ public class TransactionPanel extends javax.swing.JPanel {
         textarea1.setColumns(20);
         textarea1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         textarea1.setRows(5);
-        textarea1.setText("\tRECEIPT SLIP\n-----------------------------------------------\nClient Name:\nEmployee\n\nDate: \nTime: \n\nItems:\n- Car Rental:\n- Total:\n\nPayment Details:\n- Amount Paid: \n\n-----------------------------------------------\n\tQuickie Car Rental\n               Thank you for your business!");
+        textarea1.setText("\tRECEIPT SLIP\n-----------------------------------------------\nClient Name:\nEmployee\n\nDate: \nTime: \n\nItems:\n- Car Rental:\n- Total:\n\nPayment Details:\n- Amount Paid: \n\n-----------------------------------------------\n                       Quickie Car Rental\n              Thank you for your business!");
         jScrollPane4.setViewportView(textarea1);
 
         receipt.getContentPane().add(jScrollPane4, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 14, 299, 369));
@@ -457,7 +458,7 @@ public class TransactionPanel extends javax.swing.JPanel {
 
                 Calendar returnCalendar = Calendar.getInstance();
                 returnCalendar.setTime(borrowDate);
-                returnCalendar.add(Calendar.DAY_OF_YEAR, 1);
+                returnCalendar.add(Calendar.DAY_OF_YEAR, 2);
 
                 SpinnerModel returnSpinnerModel = new SpinnerDateModel(returnCalendar.getTime(), null, null, Calendar.HOUR_OF_DAY);
                 JSpinner returnSpinner = new JSpinner(returnSpinnerModel);
@@ -474,7 +475,6 @@ public class TransactionPanel extends javax.swing.JPanel {
                     if (returnDate.before(borrowDate) || returnDate.equals(borrowDate)) {
                         JOptionPane.showMessageDialog(this, "Return date should be later than borrow date and not the same.", "Invalid Return Date", JOptionPane.ERROR_MESSAGE);
                     } else {
-                        // Check for existing bookings
                         if (checkExistingBookings(borrowDate, returnDate)) {
                             JOptionPane.showMessageDialog(this, "Chosen date is already booked.", "Booking Conflict", JOptionPane.ERROR_MESSAGE);
                         } else {
@@ -538,59 +538,62 @@ public class TransactionPanel extends javax.swing.JPanel {
                 JOptionPane.showMessageDialog(this, "Payment amount is less than the total fee.", "Insufficient Payment", JOptionPane.ERROR_MESSAGE);
             } else {
                 int option = JOptionPane.showOptionDialog(this,
-                    "Transaction Details:\n" +
-                    "First Name: " + fnamestr + "\n" +
-                    "Last Name: " + lnamestr + "\n" +
-                    "Contact: " + contactstr + "\n" +
-                    "Email: " + emailstr + "\n" +
-                    "Payment: " + paymentText + "\n" +
-                    "\nProceed with the transaction?",
-                    "Transaction Confirmation",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    new String[]{"Proceed", "Cancel"},
-                    "Proceed");
+                        "Transaction Details:\n" +
+                        "First Name: " + fnamestr + "\n" +
+                        "Last Name: " + lnamestr + "\n" +
+                        "Contact: " + contactstr + "\n" +
+                        "Email: " + emailstr + "\n" +
+                        "Payment: " + paymentText + "\n" +
+                        "\nProceed with the transaction?",
+                        "Transaction Confirmation",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        new String[]{"Proceed", "Cancel"},
+                        "Proceed");
 
                 if (option == JOptionPane.NO_OPTION) {
                     return;
                 }
-
-                String receiptContent = "RECEIPT SLIP\n" +
-                    "-----------------------------------------------\n" +
-                    "Client Name: " + fnamestr + " " + lnamestr + "\n" +
-                    "Employee: " + Session.getLoggedInEmployeeId() + "\n" +
-                    "Date: " + new java.util.Date() + "\n" +
-                    "Items:\n" +
-                    "- Car ID: " + carID + "\n" +
-                    "- Total: " + totalFee + "\n" +
-                    "Payment Details:\n" +
-                    "- Amount Paid: " + paymentText + "\n" +
-                    "-----------------------------------------------\n" +
-                    "Quickie Car Rental\n" +
-                    "Thank you for your business!";
+ 
+                SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd yyyy hh:mm a");
+                String formattedDate = dateFormat.format(new Date());
+                
+                String receiptContent = "\tRECEIPT SLIP\n" +
+                        "-----------------------------------------------\n" +
+                        "Client Name: " + fnamestr + " " + lnamestr + "\n" +
+                        "Employee: " + Session.getLoggedInEmployeeName() + "\n\n" +
+                        "Date: " + formattedDate + "\n\n" +
+                        "Items:\n" +
+                        "- Car ID: " + carID + "\n" +
+                        "- Total: " + totalFee + "\n\n" +
+                        "Payment Details:\n" +
+                        "- Amount Paid: " + paymentText + "\n\n" +
+                        "-----------------------------------------------\n" +
+                        "                       Quickie Car Rental\n" +
+                        "              Thank you for your business!";
 
                 textarea1.setText(receiptContent);
                 receipt.setLocationRelativeTo(null);
                 receipt.setVisible(true);
-                
+
                 printreceipt.addActionListener((ActionEvent e) -> {
-                    int clientId;
+                    int clientId = 0;
                     try (Connection con = DriverManager.getConnection(url, sqluser, sqlpass)) {
                         con.setAutoCommit(false);
-                        
-                        System.out.println(1);
+
                         int loggedInEmployeeId = Session.getLoggedInEmployeeId();
-                        String checkQuery = "SELECT id FROM clients WHERE contact = ? AND email = ?";
-                        try (PreparedStatement psCheck = con.prepareStatement(checkQuery)) {
-                            psCheck.setString(1, contactstr);
-                            psCheck.setString(2, emailstr);
-                            try (ResultSet rs = psCheck.executeQuery()) {
+
+                        String checkClientQuery = "SELECT id FROM clients WHERE contact = ? OR email = ?";
+                        try (PreparedStatement psCheckClient = con.prepareStatement(checkClientQuery)) {
+                            psCheckClient.setString(1, contactstr);
+                            psCheckClient.setString(2, emailstr);
+                            try (ResultSet rs = psCheckClient.executeQuery()) {
                                 if (rs.next()) {
                                     clientId = rs.getInt("id");
                                 } else {
-                                    String insertQueryClient = "INSERT INTO clients (fname, lname, contact, email) VALUES (?, ?, ?, ?)";
-                                    try (PreparedStatement psInsertClient = con.prepareStatement(insertQueryClient, Statement.RETURN_GENERATED_KEYS)) {
+                                    String insertClientQuery = "INSERT INTO clients (fname, lname, contact, email) VALUES (?, ?, ?, ?)";
+                                    try (PreparedStatement psInsertClient = con.prepareStatement(insertClientQuery, Statement.RETURN_GENERATED_KEYS)) {
                                         psInsertClient.setString(1, fnamestr);
                                         psInsertClient.setString(2, lnamestr);
                                         psInsertClient.setString(3, contactstr);
@@ -610,7 +613,7 @@ public class TransactionPanel extends javax.swing.JPanel {
                                 }
                             }
                         }
-                        
+
                         String checkActiveBookingQuery = "SELECT * FROM transactions WHERE client_id = ? AND return_date > NOW()";
                         try (PreparedStatement psCheckActiveBooking = con.prepareStatement(checkActiveBookingQuery)) {
                             psCheckActiveBooking.setInt(1, clientId);
@@ -623,50 +626,72 @@ public class TransactionPanel extends javax.swing.JPanel {
                             }
                         }
 
-                        System.out.println(3);
-                        String insertTransaction = "INSERT INTO transactions (car_id, client_id, employee_id, borrow_date, return_date, total_fee, pay, transact_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-                        PreparedStatement psInsertTransaction = con.prepareStatement(insertTransaction, Statement.RETURN_GENERATED_KEYS);
-                        psInsertTransaction.setInt(1, carID);
-                        psInsertTransaction.setInt(2, clientId);
-                        psInsertTransaction.setInt(3, loggedInEmployeeId);
-                        psInsertTransaction.setTimestamp(4, new java.sql.Timestamp(borrowDate.getTime()));
-                        psInsertTransaction.setTimestamp(5, new java.sql.Timestamp(returnDate.getTime()));
-                        psInsertTransaction.setBigDecimal(6, totalFee);
-                        psInsertTransaction.setBigDecimal(7, payAmount);
-                        psInsertTransaction.setTimestamp(8, new java.sql.Timestamp(System.currentTimeMillis()));
+                        String insertTransactionQuery = "INSERT INTO transactions (car_id, client_id, employee_id, borrow_date, return_date, total_fee, pay, transact_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                        try (PreparedStatement psInsertTransaction = con.prepareStatement(insertTransactionQuery, Statement.RETURN_GENERATED_KEYS)) {
+                            psInsertTransaction.setInt(1, carID);
+                            psInsertTransaction.setInt(2, clientId);
+                            psInsertTransaction.setInt(3, loggedInEmployeeId);
+                            psInsertTransaction.setTimestamp(4, new java.sql.Timestamp(borrowDate.getTime()));
+                            psInsertTransaction.setTimestamp(5, new java.sql.Timestamp(returnDate.getTime()));
+                            psInsertTransaction.setBigDecimal(6, totalFee);
+                            psInsertTransaction.setBigDecimal(7, payAmount);
+                            psInsertTransaction.setTimestamp(8, new java.sql.Timestamp(System.currentTimeMillis()));
 
-                        psInsertTransaction.executeUpdate();
+                            int affectedRows = psInsertTransaction.executeUpdate();
+                            if (affectedRows == 0) {
+                                throw new SQLException("Creating transaction failed, no rows affected.");
+                            }
 
-                        ResultSet generatedKeys = psInsertTransaction.getGeneratedKeys();
-                        int transactId = -1;
-                        if (generatedKeys.next()) {
-                            transactId = generatedKeys.getInt(1); 
+                            try (ResultSet generatedKeys = psInsertTransaction.getGeneratedKeys()) {
+                                if (generatedKeys.next()) {
+                                    int transactionId = generatedKeys.getInt(1);
+                                    
+                                    String receiptContents = "\tRECEIPT SLIP\n" +
+                                            "-----------------------------------------------\n" +
+                                            "Transaction ID: " +transactionId+ "\n" +
+                                            "Client Name: " + fnamestr + " " + lnamestr + "\n" +
+                                            "Employee: " + Session.getLoggedInEmployeeName() + "\n\n" +
+                                            "Date: " + formattedDate + "\n\n" +
+                                            "Items:\n" +
+                                            "- Car ID: " + carID + "\n" +
+                                            "- Total: " + totalFee + "\n\n" +
+                                            "Payment Details:\n" +
+                                            "- Amount Paid: " + paymentText + "\n\n" +
+                                            "-----------------------------------------------\n" +
+                                            "                       Quickie Car Rental\n" +
+                                            "              Thank you for your business!";
+
+                                    textarea1.setText(receiptContents);
+
+                                    BufferedImage image = new BufferedImage(textarea1.getWidth(), textarea1.getHeight(), BufferedImage.TYPE_INT_RGB);
+
+                                    Graphics2D g2d = image.createGraphics();
+                                    textarea1.printAll(g2d);
+                                    g2d.dispose();
+
+                                    String fileName = "transactionID=" + transactionId + ".png";
+                                    String filePath = System.getProperty("user.home") + "/Downloads/" + fileName;
+                                    File output = new File(filePath);
+                                    ImageIO.write(image, "png", output);
+
+                                    receipt.setVisible(false);
+                                    JOptionPane.showMessageDialog(null, "Transaction Completed", "Success", JOptionPane.INFORMATION_MESSAGE);
+
+                                    con.commit();
+                                } else {
+                                    throw new SQLException("Creating transaction failed, no ID obtained.");
+                                }
+                            }
                         }
 
-                        con.commit();
-
-                        String fileName = "transaction_details.txt";
-                        String filePath = System.getProperty("user.home") + "/Downloads/" + fileName;
-                        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
-                            writer.println("Transaction Details: " + transactId);
-                            writer.println("Transaction ID: " + transactId);
-                            writer.println("Employee ID: " + loggedInEmployeeId);
-                            writer.println("Client ID: " + clientId);
-                            writer.println("First Name: " + fnamestr);
-                            writer.println("Last Name: " + lnamestr);
-                            writer.println("Contact: " + contactstr);
-                            writer.println("Email: " + emailstr);
-                            writer.println("Payment: " + paymentText);
-                        } catch (IOException ex) {
-                            JOptionPane.showMessageDialog(this, "Failed to save transaction details to file.", "Error", JOptionPane.ERROR_MESSAGE);
-                        }
-
-                        JOptionPane.showMessageDialog(null, "Transaction Completed", "Success", JOptionPane.INFORMATION_MESSAGE);
                     } catch (SQLException es) {
                         JOptionPane.showMessageDialog(null, "Transaction failed. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
+                    } catch (IOException ex) {
+                        Logger.getLogger(TransactionPanel.class.getName()).log(Level.SEVERE, null, ex);
                     }
+
                     receipt.setVisible(false);
-                    
+
                     Dashboard dashboard = (Dashboard) SwingUtilities.getWindowAncestor(this);
                     if (dashboard != null) {
                         dashboard.getTabbedPane().removeAll();

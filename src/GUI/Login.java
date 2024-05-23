@@ -210,7 +210,9 @@ public class Login extends javax.swing.JFrame {
             ResultSet rs = checkPs.executeQuery();
             if (rs.next()) {
                 int employeeId = rs.getInt("id");
-                String employeeName = rs.getString("fname");
+                String employeeFname = rs.getString("fname");
+                String employeeLname = rs.getString("lname");
+                String employeeName = employeeFname +" "+ employeeLname;
                 Session.setLoggedInEmployee(employeeId, employeeName);
 
                 Dashboard d = new Dashboard();
